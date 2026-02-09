@@ -1,4 +1,12 @@
+# Virtual env
 .venv/
+
+# Databases
+*.db
+
+# FAISS index (generated)
+data/faiss_index/
+
+# Python cache
 __pycache__/
 *.pyc
-data/faiss_index/
