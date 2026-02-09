@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+langchain
+langchain-ollama
+langchain-community
+faiss-cpu
+pydantic
+pydantic-settings
+python-multipart
+pandas
+jinja2
+matplotlib

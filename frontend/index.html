@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat SQL offline</title>
+    <link rel="stylesheet" href="/static/style.css">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i data-lucide="database" color="#020617" size="24"></i>
+            </div>
+            <div class="logo-text">Chat SQL</div>
+        </div>
+
+        <nav class="nav-section">
+            <span class="nav-label">Database connection</span>
+            <div class="db-config-card">
+                <input type="text" id="db-path" class="input-style" placeholder="C:\path\to\your.db">
+                <button id="connect-btn" class="btn-primary">Connect & Index</button>
+            </div>
+        </nav>
+
+        <nav class="nav-section" style="flex: 1;">
+            <span class="nav-label">System Intelligence</span>
+            <div class="db-config-card" style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.8;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <i data-lucide="cpu" size="14"></i> Mistral 7B (Ollama)
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <i data-lucide="microscope" size="14"></i> RAG Schema Awareness
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="shield-check" size="14"></i> Read-Only Validation
+                </div>
+            </div>
+        </nav>
+
+        <div style="font-size: 0.7rem; color: var(--text-muted); text-align: center; opacity: 0.5;">
+            Built for Secure Environments
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-bar">
+            <div id="connection-status" class="status-indicator">
+                <div class="status-dot"></div>
+                Initializing...
+            </div>
+        </header>
+
+        <div class="chat-window">
+            <div id="messages" class="messages-area">
+                <div class="msg-row bot">
+                    <div class="bubble">
+                        Welcome to chat SQL. I'm your offline database intelligence layer.<br><br>
+                        I can help you analyze your data using natural language.
+                        <strong>Connect a database</strong> on the left to begin.
+                    </div>
+                </div>
+            </div>
+
+            <div class="composer">
+                <div class="input-wrapper">
+                    <textarea id="user-input" rows="1" placeholder="Type a question about your data..."></textarea>
+                </div>
+                <div class="composer-footer">
+                    <div class="toggle-group">
+                        <input type="checkbox" id="explain-toggle" style="cursor: pointer;">
+                        <label for="explain-toggle">Show Simple Summary</label>
+                    </div>
+                    <div class="toggle-group" style="margin-left: 1rem;">
+                        <input type="checkbox" id="graph-toggle" style="cursor: pointer;">
+                        <label for="graph-toggle">Generate Graph</label>
+                    </div>
+                    <button id="send-btn" class="send-btn">
+                        <span>Ask AI</span>
+                        <i data-lucide="send" size="16"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/app.js"></script>
+    <script>
+        // Initialize icons
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
