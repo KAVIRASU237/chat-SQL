@@ -10,3 +10,5 @@ python-multipart
 pandas
 jinja2
 matplotlib
+python-jose[cryptography]
+argon2-cffi

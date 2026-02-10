@@ -10,21 +10,28 @@ class DatabaseExecutor:
         conn = None
         try:
             conn = sqlite3.connect(self.db_path)
-            # Row factory helps returning rows as dicts if needed, 
-            # but for tabular results, we'll keep it simple
             cursor = conn.cursor()
             cursor.execute(query)
             
-            rows = cursor.fetchall()
+            # Commit for non-SELECT statements
+            if any(op in query.upper() for op in ["INSERT", "UPDATE", "DELETE", "CREATE", "DROP", "ALTER"]):
+                conn.commit()
+
+            rows = cursor.fetchall() if cursor.description else []
             columns = [desc[0] for desc in cursor.description] if cursor.description else []
+            
+            # For DML statements, fetchall() is empty, so we use rowcount
+            row_count = cursor.rowcount if not cursor.description else len(rows)
             
             return {
                 "success": True,
                 "columns": columns,
                 "rows": rows,
-                "row_count": len(rows)
+                "row_count": row_count if row_count != -1 else len(rows)
             }
         except Exception as e:
+            if conn:
+                conn.rollback()
             return {
                 "success": False,
                 "error": str(e)
@@ -32,3 +39,4 @@ class DatabaseExecutor:
         finally:
             if conn:
                 conn.close()
+

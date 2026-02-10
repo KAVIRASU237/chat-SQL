@@ -12,6 +12,7 @@ from backend.services.db_executor import DatabaseExecutor
 from backend.services.graph_service import GraphGeneratorService
 from backend.utils.sql_validator import SQLValidator
 from backend.utils.schema_extractor import SchemaExtractor
+from backend.routers import admin
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -23,6 +24,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(admin.router)
 
 # Initialize services
 rag_service = RAGService(settings.DATABASE_PATH, settings.VECTOR_STORE_PATH, settings.OLLAMA_URL)

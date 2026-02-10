@@ -4,96 +4,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat SQL offline</title>
+    <title>ChatSQL | Offline Data Intelligence</title>
     <link rel="stylesheet" href="/static/style.css">
-
-    <!-- Lucide Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
 <body>
-    <aside class="sidebar">
-        <div class="logo-container">
-            <div class="logo-icon">
-                <i data-lucide="database" color="#020617" size="24"></i>
-            </div>
-            <div class="logo-text">Chat SQL</div>
-        </div>
-
-        <nav class="nav-section">
-            <span class="nav-label">Database connection</span>
-            <div class="db-config-card">
-                <input type="text" id="db-path" class="input-style" placeholder="C:\path\to\your.db">
-                <button id="connect-btn" class="btn-primary">Connect & Index</button>
-            </div>
-        </nav>
-
-        <nav class="nav-section" style="flex: 1;">
-            <span class="nav-label">System Intelligence</span>
-            <div class="db-config-card" style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.8;">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <i data-lucide="cpu" size="14"></i> Mistral 7B (Ollama)
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <header class="logo-container">
+                <div class="logo-icon">
+                    <i data-lucide="database" color="white" size="20"></i>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <i data-lucide="microscope" size="14"></i> RAG Schema Awareness
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="shield-check" size="14"></i> Read-Only Validation
-                </div>
-            </div>
-        </nav>
+                <h1 class="logo-text">ChatSQL</h1>
+            </header>
 
-        <div style="font-size: 0.7rem; color: var(--text-muted); text-align: center; opacity: 0.5;">
-            Built for Secure Environments
-        </div>
-    </aside>
-
-    <main class="main-content">
-        <header class="top-bar">
-            <div id="connection-status" class="status-indicator">
-                <div class="status-dot"></div>
-                Initializing...
-            </div>
-        </header>
-
-        <div class="chat-window">
-            <div id="messages" class="messages-area">
-                <div class="msg-row bot">
-                    <div class="bubble">
-                        Welcome to chat SQL. I'm your offline database intelligence layer.<br><br>
-                        I can help you analyze your data using natural language.
-                        <strong>Connect a database</strong> on the left to begin.
-                    </div>
-                </div>
-            </div>
-
-            <div class="composer">
-                <div class="input-wrapper">
-                    <textarea id="user-input" rows="1" placeholder="Type a question about your data..."></textarea>
-                </div>
-                <div class="composer-footer">
-                    <div class="toggle-group">
-                        <input type="checkbox" id="explain-toggle" style="cursor: pointer;">
-                        <label for="explain-toggle">Show Simple Summary</label>
-                    </div>
-                    <div class="toggle-group" style="margin-left: 1rem;">
-                        <input type="checkbox" id="graph-toggle" style="cursor: pointer;">
-                        <label for="graph-toggle">Generate Graph</label>
-                    </div>
-                    <button id="send-btn" class="send-btn">
-                        <span>Ask AI</span>
-                        <i data-lucide="send" size="16"></i>
+            <nav class="nav-section">
+                <h2 class="nav-label">Database Connection</h2>
+                <div class="card">
+                    <input type="text" id="db-path" class="input-style" placeholder="C:\data\sample.db"
+                        style="margin-bottom: 0.8rem">
+                    <button id="connect-btn" class="btn-primary" style="width: 100%;">
+                        <i data-lucide="link" size="16"></i>
+                        <span>Sync Database</span>
                     </button>
                 </div>
+            </nav>
+
+            <nav class="nav-section">
+                <h2 class="nav-label">Capabilities</h2>
+                <div class="card"
+                    style="font-size: 0.85rem; display: flex; flex-direction: column; gap: 1rem; color: var(--text-muted)">
+                    <div style="display: flex; align-items: center; gap: 12px">
+                        <div
+                            style="width: 24px; height: 24px; border-radius: 6px; background: var(--primary-light); display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="cpu" size="14" color="var(--primary)"></i>
+                        </div>
+                        <span>Local Mistral-7B</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px">
+                        <div
+                            style="width: 24px; height: 24px; border-radius: 6px; background: rgba(236, 72, 153, 0.1); display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="search" size="14" color="var(--secondary)"></i>
+                        </div>
+                        <span>Contextual RAG</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px">
+                        <div
+                            style="width: 24px; height: 24px; border-radius: 6px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="shield-check" size="14" color="var(--success)"></i>
+                        </div>
+                        <span>Locked Privacy</span>
+                    </div>
+                </div>
+            </nav>
+
+            <div
+                style="margin-top: auto; padding-top: 1.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-dim); text-align: center;">
+                <div style="margin-bottom: 0.5rem;">Air-Gapped Security Active</div>
+                <a href="/static/admin_login.html"
+                    style="color: var(--primary); text-decoration: none; font-weight: 600;">Admin Console</a>
             </div>
-        </div>
-    </main>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="admin-glass-nav" style="border: none; background: transparent;">
+                <div id="connection-status" class="status-badge" style="display:none; position: static;">
+                    <div class="pulse" style="width: 8px; height: 8px; border-radius: 50%; background: var(--success)">
+                    </div>
+                    Intelligence Core Online
+                </div>
+            </header>
+
+            <section id="messages" class="chat-window">
+                <div class="msg-row bot">
+                    <div class="bubble">
+                        <h3 style="margin-bottom: 0.75rem; font-weight: 800; font-size: 1.25rem;">Neural Data Bridge
+                        </h3>
+                        <p>I am your local interface for complex data analysis. To start querying, <strong>point me to
+                                your SQLite database</strong> via the connection terminal in the sidebar.</p>
+                        <div class="insight-box"
+                            style="margin-top: 1.5rem; background: rgba(255, 255, 255, 0.03); border-color: var(--primary-light);">
+                            <span style="color: var(--primary); font-weight: 700;">Tip:</span> Try asking things like
+                            "Show me top 5 customers by order volume" once connected.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="composer-wrapper">
+                <div class="composer">
+                    <textarea id="user-input" rows="1" placeholder="Describe the data you need..."></textarea>
+
+                    <footer
+                        style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                        <div style="display: flex; gap: 1.5rem;">
+                            <label class="toggle-item"
+                                style="display:flex; align-items:center; gap: 8px; font-size: 0.85rem; color: var(--text-muted); cursor: pointer">
+                                <input type="checkbox" id="explain-toggle" checked>
+                                <span>Insight mode</span>
+                            </label>
+                            <label class="toggle-item"
+                                style="display:flex; align-items:center; gap: 8px; font-size: 0.85rem; color: var(--text-muted); cursor: pointer">
+                                <input type="checkbox" id="graph-toggle">
+                                <span>Visual analytics</span>
+                            </label>
+                        </div>
+
+                        <button id="send-btn" class="btn-primary">
+                            <span>Analyze</span>
+                            <i data-lucide="sparkles" size="18"></i>
+                        </button>
+                    </footer>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <script src="/static/app.js"></script>
-    <script>
-        // Initialize icons
-        lucide.createIcons();
-    </script>
+    <script>lucide.createIcons();</script>
 </body>
 
 </html>

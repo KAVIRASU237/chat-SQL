@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatSQL | Admin Master Control</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="admin-theme">
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <header class="logo-container">
+                <div class="logo-icon">
+                    <i data-lucide="shield" color="white" size="20"></i>
+                </div>
+                <h1 class="logo-text">ChatSQL <span style="color: var(--secondary)">Admin</span></h1>
+            </header>
+
+            <nav class="nav-section" style="margin-top: 1rem;">
+                <h2 class="nav-label">Main Modules</h2>
+                <div style="display: grid; gap: 8px;">
+                    <button id="tab-ai" class="btn-secondary active-module" onclick="switchMode('ai')"
+                        style="justify-content: flex-start;">
+                        <i data-lucide="message-square" size="18"></i>
+                        <span>AI Command Center</span>
+                    </button>
+                    <button id="tab-raw" class="btn-secondary" onclick="switchMode('raw')"
+                        style="justify-content: flex-start;">
+                        <i data-lucide="terminal" size="18"></i>
+                        <span>Raw SQL Terminal</span>
+                    </button>
+                </div>
+            </nav>
+
+            <div style="margin-top: auto;">
+                <button onclick="logout()" class="btn-secondary"
+                    style="width: 100%; color: var(--error); border-color: rgba(239, 68, 68, 0.2);">
+                    <i data-lucide="log-out" size="18"></i>
+                    <span>Terminate Session</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="admin-glass-nav">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div class="status-badge" style="position: static; font-size: 0.8rem;">
+                        <div class="pulse"
+                            style="width: 8px; height: 8px; border-radius: 50%; background: var(--success)"></div>
+                        Connected: Central Database
+                    </div>
+                </div>
+            </header>
+
+            <section id="messages" class="chat-window">
+                <div class="msg-row bot">
+                    <div class="bubble">
+                        <p id="welcome-text">Welcome back, Administrator. AI Agent is initialized for <strong>direct
+                                database modifications</strong>.</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="composer-wrapper">
+                <div class="composer">
+                    <textarea id="admin-input" rows="1"
+                        placeholder="e.g. 'Update unit_price to 550 for product_id 10'"></textarea>
+
+                    <footer
+                        style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                        <div style="display: flex; gap: 1.5rem;">
+                            <label id="preview-toggle-label" class="toggle-item"
+                                style="display:flex; align-items:center; gap: 8px; font-size: 0.85rem; color: var(--text-muted); cursor: pointer">
+                                <input type="checkbox" id="explain-toggle" checked>
+                                <span>Preview logic</span>
+                            </label>
+                        </div>
+
+                        <button id="send-admin-btn" class="btn-primary">
+                            <span id="btn-text">Execute Change</span>
+                            <i id="btn-icon" data-lucide="send" size="18"></i>
+                        </button>
+                    </footer>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <style>
+        .active-module {
+            background: var(--bg-surface-elevated) !important;
+            border-color: var(--primary) !important;
+            color: var(--text-base) !important;
+        }
+    </style>
+
+    <script>
+        lucide.createIcons();
+        const token = localStorage.getItem('admin_token');
+        if (!token) window.location.href = '/static/admin_login.html';
+
+        let currentMode = 'ai';
+
+        function logout() {
+            localStorage.removeItem('admin_token');
+            window.location.href = '/static/admin_login.html';
+        }
+
+        const messagesContainer = document.getElementById('messages');
+        const adminInput = document.getElementById('admin-input');
+        const sendBtn = document.getElementById('send-admin-btn');
+        const explainToggle = document.getElementById('explain-toggle');
+        const previewLabel = document.getElementById('preview-toggle-label');
+        const btnText = document.getElementById('btn-text');
+        const welcomeText = document.getElementById('welcome-text');
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.btn-secondary').forEach(b => b.classList.remove('active-module'));
+
+            if (mode === 'ai') {
+                document.getElementById('tab-ai').classList.add('active-module');
+                adminInput.placeholder = "e.g. 'Update unit_price to 550 for product_id 10'";
+                previewLabel.style.display = 'flex';
+                btnText.innerText = "Execute Change";
+            } else {
+                document.getElementById('tab-raw').classList.add('active-module');
+                adminInput.placeholder = "SELECT * FROM products; -- Enter RAW SQL here";
+                previewLabel.style.display = 'none';
+                btnText.innerText = "Run SQL Query";
+            }
+            lucide.createIcons();
+        }
+
+        function scrollToBottom() {
+            messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: 'smooth' });
+        }
+
+        function addUserMessage(text) {
+            const row = document.createElement('div');
+            row.className = 'msg-row user';
+            row.innerHTML = `<div class="bubble">${text}</div>`;
+            messagesContainer.appendChild(row);
+            scrollToBottom();
+        }
+
+        function createBotSkeleton() {
+            const row = document.createElement('div');
+            row.className = 'msg-row bot';
+            row.innerHTML = `
+                <div class="bubble">
+                    <div style="display: flex; gap: 6px;">
+                        <div class="pulse" style="width:6px; height:6px; background:var(--text-muted); border-radius:50%;"></div>
+                        <div class="pulse" style="width:6px; height:6px; background:var(--text-muted); border-radius:50%; animation-delay: 0.2s"></div>
+                        <div class="pulse" style="width:6px; height:6px; background:var(--text-muted); border-radius:50%; animation-delay: 0.4s"></div>
+                    </div>
+                </div>
+            `;
+            messagesContainer.appendChild(row);
+            scrollToBottom();
+            return row;
+        }
+
+        sendBtn.addEventListener('click', async () => {
+            const inputVal = adminInput.value.trim();
+            if (!inputVal) return;
+
+            addUserMessage(inputVal);
+            adminInput.value = '';
+            const loadingRow = createBotSkeleton();
+
+            const endpoint = currentMode === 'ai' ? '/admin/ask' : '/admin/execute';
+            const body = currentMode === 'ai' ?
+                JSON.stringify({ question: inputVal, explain: explainToggle.checked }) :
+                JSON.stringify({ query: inputVal });
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: body
+                });
+
+                if (res.status === 401 || res.status === 403) { logout(); return; }
+                const data = await res.json();
+                const bubble = loadingRow.querySelector('.bubble');
+                bubble.innerHTML = '';
+
+                if (data.error) {
+                    bubble.innerHTML = `
+                        <div style="color:var(--error); font-weight:700; margin-bottom: 0.5rem;">Operation Failed</div>
+                        <div style="font-size:0.9rem; background: rgba(239, 68, 68, 0.05); padding: 0.75rem; border-radius: 8px; border-left: 3px solid var(--error);">
+                            ${data.error}
+                        </div>
+                    `;
+                    return;
+                }
+
+                bubble.innerHTML = `
+                    <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem">
+                        ${data.row_count !== undefined ? `Modified/Retrieved: ${data.row_count} rows` : ''}
+                    </div>
+                `;
+
+                if (data.sql && currentMode === 'ai') {
+                    const sqlSec = document.createElement('div');
+                    sqlSec.className = 'sql-container';
+                    sqlSec.innerHTML = `<div class="sql-header">GENERATED RAW SQL</div><div class="sql-code">${data.sql}</div>`;
+                    bubble.appendChild(sqlSec);
+                }
+
+                if (data.explanation) {
+                    const ins = document.createElement('div');
+                    ins.className = 'insight-box';
+                    ins.innerHTML = `<strong>AI Insight:</strong><br>${data.explanation}`;
+                    bubble.appendChild(ins);
+                }
+
+                if (data.rows && data.rows.length > 0) {
+                    const tblWrap = document.createElement('div');
+                    tblWrap.className = 'table-wrapper';
+                    const table = document.createElement('table');
+                    const thead = document.createElement('thead');
+                    const hRow = document.createElement('tr');
+                    data.columns.forEach(col => { const th = document.createElement('th'); th.innerText = col; hRow.appendChild(th); });
+                    thead.appendChild(hRow); table.appendChild(thead);
+                    const tbody = document.createElement('tbody');
+                    data.rows.forEach(row => { const tr = document.createElement('tr'); row.forEach(cell => { const td = document.createElement('td'); td.innerText = cell === null ? 'NULL' : cell; tr.appendChild(td); }); tbody.appendChild(tr); });
+                    table.appendChild(tbody); tblWrap.appendChild(table); bubble.appendChild(tblWrap);
+                }
+
+                lucide.createIcons();
+            } catch (e) {
+                loadingRow.querySelector('.bubble').innerHTML = `<div style="color:var(--error)">Critical Communication Error</div>`;
+            }
+            scrollToBottom();
+        });
+
+        adminInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendBtn.click();
+            }
+        });
+
+        adminInput.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight > 300 ? 300 : this.scrollHeight) + 'px';
+        });
+    </script>
+</body>
+
+</html>

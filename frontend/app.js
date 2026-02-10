@@ -15,7 +15,21 @@ userInput.addEventListener('input', function () {
     this.style.height = (this.scrollHeight) + 'px';
 });
 
-// Helper to create bot message skeleton
+function scrollToBottom() {
+    messagesContainer.scrollTo({
+        top: messagesContainer.scrollHeight,
+        behavior: 'smooth'
+    });
+}
+
+function addUserMessage(text) {
+    const row = document.createElement('div');
+    row.className = 'msg-row user';
+    row.innerHTML = `<div class="bubble">${text}</div>`;
+    messagesContainer.appendChild(row);
+    scrollToBottom();
+}
+
 function createBotSkeleton() {
     const row = document.createElement('div');
     row.className = 'msg-row bot';
@@ -33,35 +47,17 @@ function createBotSkeleton() {
     return row;
 }
 
-function scrollToBottom() {
-    messagesContainer.scrollTo({
-        top: messagesContainer.scrollHeight,
-        behavior: 'smooth'
-    });
-}
-
-// Add user message to UI
-function addUserMessage(text) {
-    const row = document.createElement('div');
-    row.className = 'msg-row user';
-    row.innerHTML = `<div class="bubble">${text}</div>`;
-    messagesContainer.appendChild(row);
-    scrollToBottom();
-}
-
 // Check Backend Status
 async function checkStatus() {
     try {
         const res = await fetch(`${API_BASE}/status`);
         const data = await res.json();
         if (data.status === "online") {
-            statusBadge.innerHTML = '<div class="status-dot"></div> Systems Online';
-            statusBadge.style.color = "var(--success)";
+            statusBadge.style.display = "flex";
             if (!dbPathInput.value) dbPathInput.value = data.database_path;
         }
     } catch (e) {
-        statusBadge.innerHTML = '<div class="status-dot" style="background: var(--error); box-shadow: 0 0 10px var(--error);"></div> Offline';
-        statusBadge.style.color = "var(--error)";
+        statusBadge.style.display = "none";
     }
 }
 
@@ -71,7 +67,8 @@ connectBtn.addEventListener('click', async () => {
     if (!path) return;
 
     connectBtn.disabled = true;
-    connectBtn.innerText = "Indexing...";
+    connectBtn.innerHTML = '<i data-lucide="loader-2" class="spin" size="16"></i> Indexing...';
+    lucide.createIcons();
 
     try {
         const res = await fetch(`${API_BASE}/connect`, {
@@ -80,21 +77,33 @@ connectBtn.addEventListener('click', async () => {
             body: JSON.stringify({ db_path: path })
         });
         const data = await res.json();
+
         const row = document.createElement('div');
         row.className = 'msg-row bot';
 
         if (res.ok) {
-            row.innerHTML = `<div class="bubble">✅ <strong>Schema Synchronized</strong><br>Successfully indexed ${data.tables_indexed} tables from your database. I'm ready for your queries.</div>`;
+            row.innerHTML = `
+                <div class="bubble">
+                    <div style="color: var(--success); font-weight: 700; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="check-circle" size="18"></i> 
+                        Schema Synchronized
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 0.9rem;">
+                        Successfully indexed <strong>${data.tables_indexed} tables</strong>. I am now schema-aware and ready for your queries.
+                    </div>
+                </div>`;
         } else {
             row.innerHTML = `<div class="bubble" style="border-color: var(--error);">❌ <strong>Connection Failed</strong><br>${data.detail || 'Generic error'}</div>`;
         }
         messagesContainer.appendChild(row);
+        lucide.createIcons();
         scrollToBottom();
     } catch (e) {
-        addUserMessage("System Error: Failed to reach backend.");
+        addUserMessage("System Error: Failed to reach internal intelligence service.");
     } finally {
         connectBtn.disabled = false;
-        connectBtn.innerText = "Connect & Index";
+        connectBtn.innerHTML = '<i data-lucide="refresh-cw" size="16"></i> Connect & Index';
+        lucide.createIcons();
     }
 });
 
@@ -105,7 +114,7 @@ sendBtn.addEventListener('click', async () => {
 
     addUserMessage(question);
     userInput.value = '';
-    userInput.style.height = 'auto'; // Reset height
+    userInput.style.height = 'auto';
 
     const loadingRow = createBotSkeleton();
 
@@ -122,11 +131,13 @@ sendBtn.addEventListener('click', async () => {
         const data = await res.json();
 
         const bubble = loadingRow.querySelector('.bubble');
-        bubble.innerHTML = ''; // Clear skeleton
+        bubble.innerHTML = '';
 
         if (data.error) {
             bubble.innerHTML = `
-                <div style="color: var(--error); font-weight: 600; margin-bottom: 0.5rem;">Intelligence Error</div>
+                <div style="color: var(--error); font-weight: 600; margin-bottom: 0.5rem; display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="alert-circle" size="16"></i> Intelligence Error
+                </div>
                 <div style="font-size: 0.9rem;">${data.error}</div>
             `;
             if (data.sql) {
@@ -134,10 +145,11 @@ sendBtn.addEventListener('click', async () => {
                 sqlSec.className = 'sql-container';
                 sqlSec.innerHTML = `
                     <div class="sql-header">GENERATED SQL</div>
-                    <div class="sql-code">${data.sql}</div>
+                    <div class="sql-code" style="color: var(--error)">${data.sql}</div>
                 `;
                 bubble.appendChild(sqlSec);
             }
+            lucide.createIcons();
             return;
         }
 
@@ -145,26 +157,28 @@ sendBtn.addEventListener('click', async () => {
         if (data.explanation) {
             const ins = document.createElement('div');
             ins.className = 'insight-box';
-            ins.innerHTML = `<strong>Quick Summary:</strong><br>${data.explanation}`;
+            ins.innerHTML = `<strong>Quick Analysis:</strong><br>${data.explanation}`;
             bubble.appendChild(ins);
         }
 
         // 1.5. Graph if exists
         if (data.graph_image) {
-            const graphDiv = document.createElement('div');
-            graphDiv.className = 'graph-wrapper';
-            graphDiv.style.marginTop = "1rem";
-            graphDiv.innerHTML = `<img src="data:image/png;base64,${data.graph_image}" alt="Data Visualization" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">`;
-            bubble.appendChild(graphDiv);
+            const img = document.createElement('img');
+            img.src = `data:image/png;base64,${data.graph_image}`;
+            img.style.maxWidth = "100%";
+            img.style.borderRadius = "12px";
+            img.style.marginTop = "1rem";
+            img.style.border = "1px solid var(--border-color)";
+            bubble.appendChild(img);
         }
 
-        // 2. SQL Query
+        // 2. Query Details (Foldable?)
         const sqlSec = document.createElement('div');
         sqlSec.className = 'sql-container';
         sqlSec.innerHTML = `
             <div class="sql-header">
-                <span>SQL QUERY</span>
-                <span style="font-size: 0.6rem; letter-spacing: 0;">AUTO-GENERATED</span>
+                <span>SQL PIPELINE</span>
+                <span class="admin-badge" style="background: var(--primary)">AUTO</span>
             </div>
             <div class="sql-code">${data.sql}</div>
         `;
@@ -176,7 +190,6 @@ sendBtn.addEventListener('click', async () => {
             tblWrap.className = 'table-wrapper';
             const table = document.createElement('table');
 
-            // Header
             const thead = document.createElement('thead');
             const hRow = document.createElement('tr');
             data.columns.forEach(col => {
@@ -187,7 +200,6 @@ sendBtn.addEventListener('click', async () => {
             thead.appendChild(hRow);
             table.appendChild(thead);
 
-            // Body
             const tbody = document.createElement('tbody');
             data.rows.forEach(row => {
                 const tr = document.createElement('tr');
@@ -203,26 +215,23 @@ sendBtn.addEventListener('click', async () => {
             bubble.appendChild(tblWrap);
 
             const count = document.createElement('div');
-            count.style = "font-size: 0.75rem; color: var(--text-muted); margin-top: 0.75rem; text-align: right;";
-            count.innerText = `Retrieved ${data.row_count} records`;
+            count.style = "font-size: 0.7rem; color: var(--text-muted); margin-top: 0.75rem; text-align: right; font-weight: 500;";
+            count.innerText = `Retrieved ${data.row_count} records from internal DB`;
             bubble.appendChild(count);
         } else {
-            const empty = document.createElement('div');
-            empty.style = "color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem; font-style: italic;";
-            empty.innerText = "The query returned no results.";
-            bubble.appendChild(empty);
+            bubble.innerHTML += `<div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem; font-style: italic;">The query executed successfully but returned zero matches.</div>`;
         }
 
+        lucide.createIcons();
         scrollToBottom();
 
     } catch (e) {
         const bubble = loadingRow.querySelector('.bubble');
-        bubble.innerHTML = "System Error: Failed to process request.";
-        console.error(e);
+        bubble.innerHTML = `<div style="color: var(--error)">Critical: Communication with local LLM failed. Ensure Ollama is running.</div>`;
     }
 });
 
-// Allow Enter to send, Shift+Enter for new line
+// Key bindings
 userInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -230,6 +239,5 @@ userInput.addEventListener('keydown', (e) => {
     }
 });
 
-// Initial load
 checkStatus();
-setInterval(checkStatus, 10000); // Heartbeat
+setInterval(checkStatus, 10000);
