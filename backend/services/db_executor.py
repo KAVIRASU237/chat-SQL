@@ -13,15 +13,23 @@ class DatabaseExecutor:
             cursor = conn.cursor()
             cursor.execute(query)
             
-            # Commit for non-SELECT statements
-            if any(op in query.upper() for op in ["INSERT", "UPDATE", "DELETE", "CREATE", "DROP", "ALTER"]):
+            # Commit for non-SELECT and non-PRAGMA statements
+            upper_query = query.upper()
+            if any(op in upper_query for op in ["INSERT", "UPDATE", "DELETE", "CREATE", "DROP", "ALTER"]):
                 conn.commit()
 
-            rows = cursor.fetchall() if cursor.description else []
-            columns = [desc[0] for desc in cursor.description] if cursor.description else []
+            rows = cursor.fetchall() if cursor.description or "PRAGMA" in upper_query else []
+            
+            # Handle standard columns vs PRAGMA columns
+            if cursor.description:
+                columns = [desc[0] for desc in cursor.description]
+            elif "PRAGMA TABLE_INFO" in upper_query:
+                columns = ["cid", "name", "type", "notnull", "dflt_value", "pk"]
+            else:
+                columns = []
             
             # For DML statements, fetchall() is empty, so we use rowcount
-            row_count = cursor.rowcount if not cursor.description else len(rows)
+            row_count = cursor.rowcount if not cursor.description and "PRAGMA" not in upper_query else len(rows)
             
             return {
                 "success": True,

@@ -23,8 +23,11 @@ SQL: INSERT INTO products (name, unit_price) VALUES ('Laptop', 1200);
 User: "Change price of item 5 to 100"
 SQL: UPDATE products SET unit_price = 100 WHERE product_id = 5;
 
-User: "Delete all orders from 2023"
-SQL: DELETE FROM orders WHERE order_date LIKE '2023%';
+User: "Describe the products table"
+SQL: PRAGMA table_info(products);
+
+User: "Show me all tables"
+SQL: SELECT name FROM sqlite_master WHERE type='table';
 """
 
         prompt = f"""### SYSTEM ROLE:
@@ -37,8 +40,9 @@ Your task is to convert NL requests into valid, optimized SQLite.
 ### CONSTRAINTS:
 - Use EXACT table and column names from the schema above.
 - Use 'LIKE %value%' for fuzzy string matching in WHERE clauses.
-- Output ONLY the raw SQL query. No markdown, no comments, no intro.
+- Output ONLY the raw SQL query or PRAGMA statement. No markdown, no comments, no intro.
 - If it's a { 'modification' if is_admin else 'query' } request, fulfill it using SQL.
+- If the user asks for 'structure', 'describe', or 'columns' of a table, use 'PRAGMA table_info(table_name)'.
 - ONLY return 'NOT_SQL' if the request is social chatter (e.g., 'hello', 'who are you').
 
 ### USER REQUEST:
