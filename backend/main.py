@@ -12,6 +12,7 @@ from backend.services.db_executor import DatabaseExecutor
 from backend.services.graph_service import GraphGeneratorService
 from backend.utils.sql_validator import SQLValidator
 from backend.utils.schema_extractor import SchemaExtractor
+from backend.services.dashboard_service import DashboardService
 from backend.routers import admin
 
 app = FastAPI(title=settings.PROJECT_NAME)
@@ -32,6 +33,7 @@ rag_service = RAGService(settings.DATABASE_PATH, settings.VECTOR_STORE_PATH, set
 sql_gen = SQLGeneratorService(settings.OLLAMA_URL)
 db_executor = DatabaseExecutor(settings.DATABASE_PATH)
 graph_gen = GraphGeneratorService()
+dashboard_service = DashboardService(settings.OLLAMA_URL)
 
 class QueryRequest(BaseModel):
     question: str
@@ -146,6 +148,53 @@ def ask_question(req: QueryRequest):
 
     except Exception as e:
         print(f"UNEXPECTED ERROR: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate-dashboard")
+def generate_dashboard(req: QueryRequest):
+    """
+    Generates a multi-component dashboard plan based on NL request.
+    """
+    try:
+        # 1. Get Schema Context
+        schema_context = rag_service.retrieve_schema(req.question)
+        
+        # 2. Generate Plan
+        plan = dashboard_service.generate_dashboard_plan(schema_context, req.question)
+        
+        if "error" in plan:
+            return plan
+
+        # 3. Execute queries for each component to get real data
+        for component in plan.get("components", []):
+            sql = component["sql"]
+            # Validate safety
+            is_safe, _ = SQLValidator.is_safe(sql)
+            if not is_safe:
+                component["error"] = "Unsafe query generated."
+                continue
+                
+            result = db_executor.execute_query(sql)
+            if result["success"]:
+                component["data"] = {
+                    "columns": result["columns"],
+                    "rows": result["rows"]
+                }
+                # Generate image for non-metric components
+                if component["chart_type"] != "metric" and result["rows"]:
+                    try:
+                        img = graph_gen.generate_graph(result["columns"], result["rows"])
+                        if img:
+                            component["image"] = img
+                    except Exception as e:
+                        print(f"Component Graph Error: {e}")
+            else:
+                component["error"] = result["error"]
+
+        return plan
+
+    except Exception as e:
+        print(f"DASHBOARD ERROR: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -8,6 +8,7 @@ const dbPathInput = document.getElementById('db-path');
 const statusBadge = document.getElementById('connection-status');
 const explainToggle = document.getElementById('explain-toggle');
 const graphToggle = document.getElementById('graph-toggle');
+const dashboardToggle = document.getElementById('dashboard-toggle');
 
 // Auto-resize textarea
 userInput.addEventListener('input', function () {
@@ -119,7 +120,10 @@ sendBtn.addEventListener('click', async () => {
     const loadingRow = createBotSkeleton();
 
     try {
-        const res = await fetch(`${API_BASE}/ask`, {
+        const isDashboard = dashboardToggle.checked;
+        const endpoint = isDashboard ? '/generate-dashboard' : '/ask';
+
+        const res = await fetch(`${API_BASE}${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -132,6 +136,11 @@ sendBtn.addEventListener('click', async () => {
 
         const bubble = loadingRow.querySelector('.bubble');
         bubble.innerHTML = '';
+
+        if (isDashboard) {
+            renderDashboardPlan(bubble, data);
+            return;
+        }
 
         if (data.error) {
             bubble.innerHTML = `
@@ -163,13 +172,25 @@ sendBtn.addEventListener('click', async () => {
 
         // 1.5. Graph if exists
         if (data.graph_image) {
+            const graphContainer = document.createElement('div');
+            graphContainer.style.position = 'relative';
             const img = document.createElement('img');
             img.src = `data:image/png;base64,${data.graph_image}`;
             img.style.maxWidth = "100%";
             img.style.borderRadius = "12px";
             img.style.marginTop = "1rem";
             img.style.border = "1px solid var(--border-color)";
-            bubble.appendChild(img);
+
+            const dlBtn = document.createElement('button');
+            dlBtn.innerHTML = '<i data-lucide="download" size="14" color="white"></i>';
+            dlBtn.style = 'position: absolute; top: 1.5rem; right: 0.5rem; padding: 6px 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.75); border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(4px); cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; transition: all 0.2s ease;';
+            dlBtn.onmouseover = () => dlBtn.style.background = 'rgba(0, 0, 0, 0.9)';
+            dlBtn.onmouseout = () => dlBtn.style.background = 'rgba(0, 0, 0, 0.75)';
+            dlBtn.onclick = () => downloadImage(img.src, 'ChatSQL_Graph.png');
+
+            graphContainer.appendChild(img);
+            graphContainer.appendChild(dlBtn);
+            bubble.appendChild(graphContainer);
         }
 
         // 2. Query Details (Foldable?)
@@ -229,7 +250,75 @@ sendBtn.addEventListener('click', async () => {
         const bubble = loadingRow.querySelector('.bubble');
         bubble.innerHTML = `<div style="color: var(--error)">Critical: Communication with local LLM failed. Ensure Ollama is running.</div>`;
     }
+    scrollToBottom();
 });
+
+function renderDashboardPlan(container, plan) {
+    if (plan.error) {
+        container.innerHTML = `<div style="color: var(--error)">${plan.error}</div>`;
+        return;
+    }
+
+    container.innerHTML = `
+        <h3 style="color: var(--primary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="layout-dashboard"></i> ${plan.dashboard_title}
+        </h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Intelligence-driven analytical overview generated locally.</p>
+        <div class="dashboard-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;"></div>
+    `;
+
+    const grid = container.querySelector('.dashboard-grid');
+
+    plan.components.forEach(comp => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.background = 'rgba(255, 255, 255, 0.02)';
+        card.style.padding = '1rem';
+
+        let visualHtml = '';
+        if (comp.error) {
+            visualHtml = `<div style="color: var(--error); font-size: 0.75rem;">Error: ${comp.error}</div>`;
+        } else if (comp.chart_type === 'metric' && comp.data && comp.data.rows.length > 0) {
+            const val = comp.data.rows[0][0];
+            visualHtml = `<div style="font-size: 1.5rem; font-weight: 800; color: var(--success); margin: 0.5rem 0;">${val}</div>`;
+        } else if (comp.image) {
+            const imgId = `img-${Math.random().toString(36).substr(2, 9)}`;
+            visualHtml = `
+                <div style="position: relative;">
+                    <img id="${imgId}" src="data:image/png;base64,${comp.image}" style="width: 100%; border-radius: 6px; margin-top: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
+                    <button onclick="downloadImage(document.getElementById('${imgId}').src, '${comp.title.replace(/\s+/g, '_')}.png')" 
+                            style="position: absolute; top: 1rem; right: 0.5rem; padding: 5px 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.75); border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(4px); cursor: pointer; color: white; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="download" size="12"></i>
+                    </button>
+                </div>`;
+        } else {
+            visualHtml = `<div style="height: 100px; background: rgba(0,0,0,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: var(--text-dim);">
+                <i data-lucide="${getIcon(comp.chart_type)}" size="16"></i>
+                <span style="margin-left: 8px;">${comp.chart_type.toUpperCase()} Visual Ready</span>
+            </div>`;
+        }
+
+        card.innerHTML = `
+            <div style="font-size: 0.8rem; font-weight: 700; margin-bottom: 0.25rem;">${comp.title}</div>
+            <div style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 0.75rem;">${comp.description}</div>
+            ${visualHtml}
+            <div style="margin-top: 0.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; opacity: 0.4; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">${comp.sql}</div>
+        `;
+        grid.appendChild(card);
+    });
+
+    lucide.createIcons();
+}
+
+function getIcon(type) {
+    switch (type) {
+        case 'line': return 'trending-up';
+        case 'bar': return 'bar-chart-3';
+        case 'pie': return 'pie-chart';
+        case 'metric': return 'target';
+        default: return 'help-circle';
+    }
+}
 
 // Key bindings
 userInput.addEventListener('keydown', (e) => {
@@ -241,3 +330,12 @@ userInput.addEventListener('keydown', (e) => {
 
 checkStatus();
 setInterval(checkStatus, 10000);
+
+function downloadImage(dataUrl, filename) {
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
