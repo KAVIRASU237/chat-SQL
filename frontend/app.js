@@ -1,4 +1,233 @@
-const API_BASE = "";
+const userToken = localStorage.getItem('user_token') || localStorage.getItem('admin_token');
+
+function handleResponseStatus(res) {
+    if (res.status === 401 || res.status === 403) {
+        logout();
+        throw new Error("Session expired. Please login again.");
+    }
+    return res;
+}
+
+// --- User Info & History ---
+function initializeUser() {
+    try {
+        const payload = JSON.parse(atob(userToken.split('.')[1]));
+        const username = payload.sub;
+        document.getElementById('display-username').innerText = username;
+        document.getElementById('user-avatar').innerText = username[0].toUpperCase();
+        loadHistory();
+    } catch (e) { console.error("Init fail", e); }
+}
+
+async function loadHistory() {
+    if (!userToken) return;
+    try {
+        const res = await fetch('/history', {
+            headers: { 'Authorization': `Bearer ${userToken}` }
+        });
+        handleResponseStatus(res);
+        const data = await res.json();
+        renderHistory(data.history);
+    } catch (e) { console.error("History fail", e); }
+}
+
+async function clearHistory() {
+    if (!confirm("Are you sure you want to delete all chat history?")) return;
+    try {
+        const res = await fetch('/history/clear', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${userToken}` }
+        });
+        handleResponseStatus(res);
+        loadHistory();
+    } catch (e) { console.error("Clear fail", e); }
+}
+
+async function deleteChatItem(chatId) {
+    if (!confirm("Delete this conversation?")) return;
+    try {
+        const res = await fetch(`/history/${chatId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${userToken}` }
+        });
+        handleResponseStatus(res);
+        loadHistory();
+    } catch (e) { console.error("Delete fail", e); }
+}
+
+function renderHistory(history) {
+    const container = document.getElementById('history-list');
+    if (!history || history.length === 0) {
+        container.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-dim); font-size: 0.8rem;">No past conversations</div>`;
+        return;
+    }
+    container.innerHTML = '';
+    history.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        div.style = "display: flex; align-items: center; justify-content: space-between; position: relative;";
+        
+        const content = document.createElement('div');
+        content.style = "flex: 1; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px;";
+        content.innerHTML = `<i data-lucide="message-square" size="14" style="min-width: 14px"></i><span>${item.prompt}</span>`;
+        content.onclick = () => showHistoryItem(item);
+        
+        const delBtn = document.createElement('button');
+        delBtn.style = "background: none; border: none; color: var(--error); cursor: pointer; padding: 4px; opacity: 0; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center;";
+        delBtn.innerHTML = '<i data-lucide="trash-2" size="14"></i>';
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteChatItem(item.id);
+        };
+        
+        div.appendChild(content);
+        div.appendChild(delBtn);
+        
+        // Show delete button on hover
+        div.onmouseenter = () => delBtn.style.opacity = '1';
+        div.onmouseleave = () => delBtn.style.opacity = '0';
+        
+        container.appendChild(div);
+    });
+    lucide.createIcons();
+}
+
+function showHistoryItem(item) {
+    messagesContainer.innerHTML = '';
+    addUserMessage(item.prompt);
+    addBotMessage(JSON.parse(item.response_json));
+}
+
+function addBotMessage(data) {
+    const row = document.createElement('div');
+    row.className = 'msg-row bot';
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    row.appendChild(bubble);
+    messagesContainer.appendChild(row);
+
+    if (data.error) {
+        bubble.innerHTML = `
+            <div style="color: var(--error); font-weight: 600; margin-bottom: 0.5rem; display:flex; align-items:center; gap:8px;">
+                <i data-lucide="alert-circle" size="16"></i> Intelligence Error
+            </div>
+            <div style="font-size: 0.9rem;">${data.error}</div>
+        `;
+        if (data.sql) {
+            const sqlSec = document.createElement('div');
+            sqlSec.className = 'sql-container';
+            sqlSec.innerHTML = `
+                <div class="sql-header">GENERATED SQL</div>
+                <div class="sql-code" style="color: var(--error)">${data.sql}</div>
+            `;
+            bubble.appendChild(sqlSec);
+        }
+    } else {
+        // 1. Explanation
+        if (data.explanation) {
+            const ins = document.createElement('div');
+            ins.className = 'insight-box';
+            ins.innerHTML = `<strong>Quick Analysis:</strong><br>${data.explanation}`;
+            bubble.appendChild(ins);
+        }
+
+        // 2. Graph
+        if (data.graph_image) {
+            const graphContainer = document.createElement('div');
+            graphContainer.style.position = 'relative';
+            const img = document.createElement('img');
+            img.src = `data:image/png;base64,${data.graph_image}`;
+            img.style.maxWidth = "100%";
+            img.style.borderRadius = "12px";
+            img.style.marginTop = "1rem";
+            img.style.border = "1px solid var(--border-color)";
+            graphContainer.appendChild(img);
+
+            // Add download button
+            const dlBtn = document.createElement('button');
+            dlBtn.className = "graph-download-btn";
+            dlBtn.innerHTML = '<i data-lucide="download"></i> <span>Save</span>';
+            dlBtn.onclick = (e) => {
+                e.stopPropagation();
+                downloadImage(img.src, `charts_export_${Date.now()}.png`);
+            };
+            graphContainer.appendChild(dlBtn);
+
+            bubble.appendChild(graphContainer);
+        }
+
+        // 3. SQL
+        if (data.sql) {
+            const sqlSec = document.createElement('div');
+            sqlSec.className = 'sql-container';
+            sqlSec.innerHTML = `
+                <div class="sql-header">
+                    <span>SQL PIPELINE</span>
+                    <span class="admin-badge" style="background: var(--primary)">AUTO</span>
+                </div>
+                <div class="sql-code">${data.sql}</div>
+            `;
+            bubble.appendChild(sqlSec);
+        }
+
+        // 4. Table
+        if (data.rows && data.rows.length > 0) {
+            const exportToolbar = document.createElement('div');
+            exportToolbar.className = 'export-toolbar';
+            const csvBtn = document.createElement('button');
+            csvBtn.className = 'btn-export';
+            csvBtn.innerHTML = '<i data-lucide="download"></i> Export CSV';
+            csvBtn.onclick = () => downloadCSV(data.columns, data.rows, `query_export_${Date.now()}.csv`);
+            exportToolbar.appendChild(csvBtn);
+            bubble.appendChild(exportToolbar);
+
+            const tblWrap = document.createElement('div');
+            tblWrap.className = 'table-wrapper';
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            const hRow = document.createElement('tr');
+            data.columns.forEach(col => {
+                const th = document.createElement('th');
+                th.innerText = col;
+                hRow.appendChild(th);
+            });
+            thead.appendChild(hRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            data.rows.forEach(r => {
+                const tr = document.createElement('tr');
+                r.forEach(cell => {
+                    const td = document.createElement('td');
+                    td.innerText = cell === null ? 'NULL' : cell;
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            tblWrap.appendChild(table);
+            bubble.appendChild(tblWrap);
+        } else if (data.sql) {
+            const emptyHint = document.createElement('div');
+            emptyHint.style = "color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem; font-style: italic;";
+            emptyHint.innerText = "The query executed successfully but returned zero matches.";
+            bubble.appendChild(emptyHint);
+        }
+    }
+
+    lucide.createIcons();
+    scrollToBottom();
+}
+
+if (userToken) {
+    window.addEventListener('DOMContentLoaded', initializeUser);
+}
+
+function logout() {
+    localStorage.removeItem('user_token');
+    localStorage.removeItem('admin_token');
+    window.location.href = '/login';
+}
 
 const messagesContainer = document.getElementById('messages');
 const userInput = document.getElementById('user-input');
@@ -51,7 +280,7 @@ function createBotSkeleton() {
 // Check Backend Status
 async function checkStatus() {
     try {
-        const res = await fetch(`${API_BASE}/status`);
+        const res = await fetch('/status');
         const data = await res.json();
         if (data.status === "online") {
             statusBadge.style.display = "flex";
@@ -68,13 +297,16 @@ connectBtn.addEventListener('click', async () => {
     if (!path) return;
 
     connectBtn.disabled = true;
-    connectBtn.innerHTML = '<i data-lucide="loader-2" class="spin" size="16"></i> Indexing...';
+    connectBtn.innerHTML = '<i data-lucide="refresh-cw" class="spin" size="16"></i> Indexing...';
     lucide.createIcons();
 
     try {
-        const res = await fetch(`${API_BASE}/connect`, {
+        const res = await fetch('/connect', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userToken}`
+            },
             body: JSON.stringify({ db_path: path })
         });
         const data = await res.json();
@@ -123,9 +355,12 @@ sendBtn.addEventListener('click', async () => {
         const isDashboard = dashboardToggle.checked;
         const endpoint = isDashboard ? '/generate-dashboard' : '/ask';
 
-        const res = await fetch(`${API_BASE}${endpoint}`, {
+        const res = await fetch(endpoint, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userToken}`
+            },
             body: JSON.stringify({
                 question,
                 explain: explainToggle.checked,
@@ -133,122 +368,16 @@ sendBtn.addEventListener('click', async () => {
             })
         });
         const data = await res.json();
+        loadHistory(); 
 
-        const bubble = loadingRow.querySelector('.bubble');
-        bubble.innerHTML = '';
-
-        if (isDashboard) {
-            renderDashboardPlan(bubble, data);
-            return;
-        }
-
-        if (data.error) {
-            bubble.innerHTML = `
-                <div style="color: var(--error); font-weight: 600; margin-bottom: 0.5rem; display:flex; align-items:center; gap:8px;">
-                    <i data-lucide="alert-circle" size="16"></i> Intelligence Error
-                </div>
-                <div style="font-size: 0.9rem;">${data.error}</div>
-            `;
-            if (data.sql) {
-                const sqlSec = document.createElement('div');
-                sqlSec.className = 'sql-container';
-                sqlSec.innerHTML = `
-                    <div class="sql-header">GENERATED SQL</div>
-                    <div class="sql-code" style="color: var(--error)">${data.sql}</div>
-                `;
-                bubble.appendChild(sqlSec);
-            }
-            lucide.createIcons();
-            return;
-        }
-
-        // 1. Explanation if exists
-        if (data.explanation) {
-            const ins = document.createElement('div');
-            ins.className = 'insight-box';
-            ins.innerHTML = `<strong>Quick Analysis:</strong><br>${data.explanation}`;
-            bubble.appendChild(ins);
-        }
-
-        // 1.5. Graph if exists
-        if (data.graph_image) {
-            const graphContainer = document.createElement('div');
-            graphContainer.style.position = 'relative';
-            const img = document.createElement('img');
-            img.src = `data:image/png;base64,${data.graph_image}`;
-            img.style.maxWidth = "100%";
-            img.style.borderRadius = "12px";
-            img.style.marginTop = "1rem";
-            img.style.border = "1px solid var(--border-color)";
-
-            const dlBtn = document.createElement('button');
-            dlBtn.innerHTML = '<i data-lucide="download" size="14" color="white"></i>';
-            dlBtn.style = 'position: absolute; top: 1.5rem; right: 0.5rem; padding: 6px 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.75); border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(4px); cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; transition: all 0.2s ease;';
-            dlBtn.onmouseover = () => dlBtn.style.background = 'rgba(0, 0, 0, 0.9)';
-            dlBtn.onmouseout = () => dlBtn.style.background = 'rgba(0, 0, 0, 0.75)';
-            dlBtn.onclick = () => downloadImage(img.src, 'ChatSQL_Graph.png');
-
-            graphContainer.appendChild(img);
-            graphContainer.appendChild(dlBtn);
-            bubble.appendChild(graphContainer);
-        }
-
-        // 2. Query Details (Foldable?)
-        const sqlSec = document.createElement('div');
-        sqlSec.className = 'sql-container';
-        sqlSec.innerHTML = `
-            <div class="sql-header">
-                <span>SQL PIPELINE</span>
-                <span class="admin-badge" style="background: var(--primary)">AUTO</span>
-            </div>
-            <div class="sql-code">${data.sql}</div>
-        `;
-        bubble.appendChild(sqlSec);
-
-        // 3. Results Table
-        if (data.rows && data.rows.length > 0) {
-            const tblWrap = document.createElement('div');
-            tblWrap.className = 'table-wrapper';
-            const table = document.createElement('table');
-
-            const thead = document.createElement('thead');
-            const hRow = document.createElement('tr');
-            data.columns.forEach(col => {
-                const th = document.createElement('th');
-                th.innerText = col;
-                hRow.appendChild(th);
-            });
-            thead.appendChild(hRow);
-            table.appendChild(thead);
-
-            const tbody = document.createElement('tbody');
-            data.rows.forEach(row => {
-                const tr = document.createElement('tr');
-                row.forEach(cell => {
-                    const td = document.createElement('td');
-                    td.innerText = cell === null ? 'NULL' : cell;
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
-            });
-            table.appendChild(tbody);
-            tblWrap.appendChild(table);
-            bubble.appendChild(tblWrap);
-
-            const count = document.createElement('div');
-            count.style = "font-size: 0.7rem; color: var(--text-muted); margin-top: 0.75rem; text-align: right; font-weight: 500;";
-            count.innerText = `Retrieved ${data.row_count} records from internal DB`;
-            bubble.appendChild(count);
-        } else {
-            bubble.innerHTML += `<div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem; font-style: italic;">The query executed successfully but returned zero matches.</div>`;
-        }
-
-        lucide.createIcons();
-        scrollToBottom();
+        loadingRow.remove(); // Remove skeleton
+        addBotMessage(data); // Use common renderer
 
     } catch (e) {
         const bubble = loadingRow.querySelector('.bubble');
-        bubble.innerHTML = `<div style="color: var(--error)">Critical: Communication with local LLM failed. Ensure Ollama is running.</div>`;
+        if (bubble) {
+            bubble.innerHTML = `<div style="color: var(--error)">Critical: Communication with local LLM failed. Ensure Ollama is running.</div>`;
+        }
     }
     scrollToBottom();
 });
@@ -330,6 +459,18 @@ userInput.addEventListener('keydown', (e) => {
 
 checkStatus();
 setInterval(checkStatus, 10000);
+
+function downloadCSV(columns, rows, filename) {
+    const csvContent = [
+        columns.join(','),
+        ...rows.map(r => r.join(','))
+    ].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+}
 
 function downloadImage(dataUrl, filename) {
     const link = document.createElement('a');

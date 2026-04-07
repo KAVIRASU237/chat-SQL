@@ -12,64 +12,116 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        // Immediatley block visible access
+        document.documentElement.style.display = 'none';
+        
+        function isSessionValid() {
+            const token = localStorage.getItem('user_token') || localStorage.getItem('admin_token');
+            if (!token) return false;
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                // Check if token is expired (JWT exp is in seconds)
+                if (payload.exp && Date.now() >= payload.exp * 1000) {
+                    localStorage.clear();
+                    return false;
+                }
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+        
+        if (!isSessionValid()) {
+            window.location.replace('/login');
+        } else {
+            // Restore visibility if authenticated
+            window.addEventListener('DOMContentLoaded', () => {
+                 document.documentElement.style.display = 'block';
+            });
+        }
+    </script>
 </head>
 
-<body>
+<body style="display: none;" class="authenticated-view">
+    <script>
+        // Secondary check just to be absolutely sure
+        if (localStorage.getItem('user_token') || localStorage.getItem('admin_token')) {
+            document.body.style.display = 'flex';
+        }
+    </script>
     <div class="app-container">
         <!-- Sidebar -->
-        <aside class="sidebar">
-            <header class="logo-container">
-                <div class="logo-icon">
-                    <i data-lucide="database" color="white" size="20"></i>
+        <aside class="sidebar" style="border-right: 1px solid var(--border-color);">
+            <header class="logo-container" style="justify-content: space-between; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 0.85rem;">
+                    <div class="logo-icon">
+                        <i data-lucide="database" color="white" size="20"></i>
+                    </div>
+                    <h1 class="logo-text">ChatSQL</h1>
                 </div>
-                <h1 class="logo-text">ChatSQL</h1>
+                <button onclick="window.location.reload()" class="btn-secondary" style="padding: 6px; aspect-ratio: 1; border-radius: 50%; min-width: 0;">
+                    <i data-lucide="plus" size="16"></i>
+                </button>
             </header>
+
+            <nav class="nav-section" style="flex: 1; overflow-y: auto;">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 0.5rem; margin-bottom: 0.5rem;">
+                    <h2 class="nav-label" style="padding: 0; margin: 0;">Conversation History</h2>
+                    <button onclick="clearHistory()" class="btn-secondary" style="padding: 4px 8px; font-size: 0.65rem; border: none; background: rgba(239, 68, 68, 0.1); color: var(--error); border-radius: 4px; display: flex; align-items: center; gap: 4px;">
+                        <i data-lucide="trash-2" size="10"></i> Clear All
+                    </button>
+                </div>
+                <div id="history-list" style="display: flex; flex-direction: column; gap: 4px;">
+                    <!-- History items will be injected here -->
+                    <div style="padding: 2rem; text-align: center; color: var(--text-dim); font-size: 0.8rem;">
+                        No past conversations
+                    </div>
+                </div>
+            </nav>
 
             <nav class="nav-section">
                 <h2 class="nav-label">Database Connection</h2>
-                <div class="card">
+                <div class="card" style="padding: 1rem;">
                     <input type="text" id="db-path" class="input-style" placeholder="C:\data\sample.db"
-                        style="margin-bottom: 0.8rem">
-                    <button id="connect-btn" class="btn-primary" style="width: 100%;">
-                        <i data-lucide="link" size="16"></i>
-                        <span>Sync Database</span>
+                        style="margin-bottom: 0.8rem; font-size: 0.8rem;">
+                    <button id="connect-btn" class="btn-primary" style="width: 100%; padding: 0.6rem;">
+                        <i data-lucide="link" size="14"></i>
+                        <span style="font-size: 0.85rem;">Sync DB</span>
                     </button>
                 </div>
             </nav>
 
-            <nav class="nav-section">
-                <h2 class="nav-label">Capabilities</h2>
-                <div class="card"
-                    style="font-size: 0.85rem; display: flex; flex-direction: column; gap: 1rem; color: var(--text-muted)">
-                    <div style="display: flex; align-items: center; gap: 12px">
-                        <div
-                            style="width: 24px; height: 24px; border-radius: 6px; background: var(--primary-light); display: flex; align-items: center; justify-content: center;">
-                            <i data-lucide="cpu" size="14" color="var(--primary)"></i>
-                        </div>
-                        <span>Local Mistral-7B</span>
+            <nav class="nav-section" style="padding: 0.5rem 0;">
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; padding: 0 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 14px; font-size: 0.8rem; color: var(--text-dim); opacity: 0.7;">
+                        <i data-lucide="cpu" size="14"></i>
+                        <span>Mistral-7B Local</span>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 12px">
-                        <div
-                            style="width: 24px; height: 24px; border-radius: 6px; background: rgba(236, 72, 153, 0.1); display: flex; align-items: center; justify-content: center;">
-                            <i data-lucide="search" size="14" color="var(--secondary)"></i>
-                        </div>
-                        <span>Contextual RAG</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 12px">
-                        <div
-                            style="width: 24px; height: 24px; border-radius: 6px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center;">
-                            <i data-lucide="shield-check" size="14" color="var(--success)"></i>
-                        </div>
-                        <span>Locked Privacy</span>
+                    <div style="display: flex; align-items: center; gap: 14px; font-size: 0.8rem; color: var(--text-dim); opacity: 0.7;">
+                        <i data-lucide="shield-check" size="14"></i>
+                        <span>Privacy Locked</span>
                     </div>
                 </div>
             </nav>
 
-            <div
-                style="margin-top: auto; padding-top: 1.5rem; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-dim); text-align: center;">
-                <div style="margin-bottom: 0.5rem;">Air-Gapped Security Active</div>
-                <a href="/static/admin_login.html"
-                    style="color: var(--primary); text-decoration: none; font-weight: 600;">Admin Console</a>
+            <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                <div style="display: flex; align-items: center; gap: 12px; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: var(--radius-md); margin-bottom: 1rem;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem; color: white;" id="user-avatar">
+                        U
+                    </div>
+                    <div style="flex: 1; overflow: hidden;">
+                        <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-base); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="display-username">User</div>
+                        <div style="font-size: 0.7rem; color: var(--text-dim);">Authenticated Session</div>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; text-align: center;">
+                    <button onclick="logout()" 
+                        style="background: transparent; border: none; color: var(--error); cursor: pointer; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <i data-lucide="log-out" size="14"></i>
+                        Logout session
+                    </button>
+                </div>
             </div>
         </aside>
 

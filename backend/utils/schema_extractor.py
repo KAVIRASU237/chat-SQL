@@ -1,5 +1,5 @@
 import sqlite3
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 class SchemaExtractor:
     def __init__(self, db_path: str):
@@ -7,9 +7,11 @@ class SchemaExtractor:
 
     def get_schema_docs(self) -> List[str]:
         """
-        Extracts the schema from the SQLite database and converts it into
-        natural language documents for embedding.
+        Extracts the schema from the SQLite database.
         """
+        return self._get_sqlite_schema_docs()
+
+    def _get_sqlite_schema_docs(self) -> List[str]:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
@@ -52,7 +54,7 @@ class SchemaExtractor:
     def get_table_names(self) -> List[str]:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = [row[0] for row in cursor.fetchall() if row[0] != 'sqlite_sequence']
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+        tables = [row[0] for row in cursor.fetchall()]
         conn.close()
         return tables

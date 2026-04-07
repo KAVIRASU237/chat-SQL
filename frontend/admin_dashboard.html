@@ -25,7 +25,21 @@
                 <h1 class="logo-text">ChatSQL <span style="color: var(--secondary)">Admin</span></h1>
             </header>
 
-            <nav class="nav-section" style="margin-top: 1rem;">
+            <nav class="nav-section" style="margin-top: 1rem; flex: 1; overflow-y: auto;">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 0.5rem; margin-bottom: 0.5rem;">
+                    <h2 class="nav-label" style="padding: 0; margin: 0;">Conversation History</h2>
+                    <button onclick="clearHistory()" class="btn-secondary" style="padding: 4px 8px; font-size: 0.65rem; border: none; background: rgba(239, 68, 68, 0.1); color: var(--error); border-radius: 4px; display: flex; align-items: center; gap: 4px;">
+                        <i data-lucide="trash-2" size="10"></i> Clear All
+                    </button>
+                </div>
+                <div id="history-list" style="display: flex; flex-direction: column; gap: 4px;">
+                    <div style="padding: 1rem; text-align: center; color: var(--text-dim); font-size: 0.75rem;">
+                        No past commands
+                    </div>
+                </div>
+            </nav>
+
+            <nav class="nav-section">
                 <h2 class="nav-label">Main Modules</h2>
                 <div style="display: grid; gap: 8px;">
                     <button id="tab-ai" class="btn-secondary active-module" onclick="switchMode('ai')"
@@ -37,6 +51,11 @@
                         style="justify-content: flex-start;">
                         <i data-lucide="terminal" size="18"></i>
                         <span>Raw SQL Terminal</span>
+                    </button>
+                    <button id="tab-users" class="btn-secondary" onclick="switchMode('users')"
+                        style="justify-content: flex-start;">
+                        <i data-lucide="users" size="18"></i>
+                        <span>User Approvals</span>
                     </button>
                 </div>
             </nav>
@@ -62,14 +81,42 @@
                 </div>
             </header>
 
-            <section id="messages" class="chat-window">
-                <div class="msg-row bot">
-                    <div class="bubble">
-                        <p id="welcome-text">Welcome back, Administrator. AI Agent is initialized for <strong>direct
-                                database modifications</strong>.</p>
+            <div id="sections-container" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">
+                <section id="messages" class="chat-window">
+                    <div class="msg-row bot">
+                        <div class="bubble">
+                            <p id="welcome-text">Welcome back, Administrator. AI Agent is initialized for <strong>direct
+                                    database modifications</strong>.</p>
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
+
+                <section id="user-management" class="chat-window" style="display:none;">
+                    <div class="bubble" style="width: 100%; max-width: 100%; border-radius: var(--radius-md);">
+                        <header style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between;">
+                            <h2 style="font-size: 1.5rem; font-weight: 800;">User Management</h2>
+                            <button onclick="loadUsers()" class="btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.8rem; display: flex; align-items: center; gap: 8px;">
+                                <i data-lucide="refresh-cw" size="14"></i> Refresh
+                            </button>
+                        </header>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Status</th>
+                                        <th>Created At</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user-list-body">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
 
             <div class="composer-wrapper">
                 <div class="composer">
@@ -83,6 +130,11 @@
                                 style="display:flex; align-items:center; gap: 8px; font-size: 0.85rem; color: var(--text-muted); cursor: pointer">
                                 <input type="checkbox" id="explain-toggle" checked>
                                 <span>Preview logic</span>
+                            </label>
+                            <label id="graph-toggle-label" class="toggle-item"
+                                style="display:flex; align-items:center; gap: 8px; font-size: 0.85rem; color: var(--text-muted); cursor: pointer">
+                                <input type="checkbox" id="graph-toggle">
+                                <span>Visual analytics</span>
                             </label>
                         </div>
 
@@ -107,13 +159,116 @@
     <script>
         lucide.createIcons();
         const token = localStorage.getItem('admin_token');
-        if (!token) window.location.href = '/static/admin_login.html';
+        
+        function isSessionValid() {
+            if (!token) return false;
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                if (payload.exp && Date.now() >= payload.exp * 1000) {
+                    localStorage.removeItem('admin_token');
+                    return false;
+                }
+                return true;
+            } catch (e) { return false; }
+        }
+
+        if (!isSessionValid()) window.location.href = '/adminlogin';
 
         let currentMode = 'ai';
 
+        function initializeAdmin() {
+            loadHistory();
+        }
+
+        async function loadHistory() {
+            try {
+                const res = await fetch('/admin/history', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                renderHistory(data.history);
+            } catch (e) { console.error("History load failed", e); }
+        }
+
+        async function clearHistory() {
+            if (!confirm("Delete all admin command history?")) return;
+            try {
+                const res = await fetch('/admin/history/clear', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    loadHistory();
+                    messagesContainer.innerHTML = `
+                        <div class="msg-row bot">
+                            <div class="bubble">
+                                <p>Admin history cleared successfully.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (e) { console.error("Clear failed", e); }
+        }
+
+        async function deleteChatItem(chatId) {
+            if (!confirm("Delete this historical command?")) return;
+            try {
+                const res = await fetch(`/admin/history/${chatId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) loadHistory();
+            } catch (e) { console.error("Deletion failed", e); }
+        }
+
+        function renderHistory(history) {
+            const container = document.getElementById('history-list');
+            if (!history || history.length === 0) {
+                container.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--text-dim); font-size: 0.75rem;">No past commands</div>';
+                return;
+            }
+            container.innerHTML = '';
+            history.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.style = "display: flex; align-items: center; justify-content: space-between; position: relative;";
+                
+                const content = document.createElement('div');
+                content.style = "flex: 1; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px;";
+                content.innerHTML = `<i data-lucide="terminal" size="14"></i><span>${item.prompt}</span>`;
+                content.onclick = () => renderBotResponse(JSON.parse(item.response_json));
+                
+                const delBtn = document.createElement('button');
+                delBtn.style = "background: none; border: none; color: var(--error); cursor: pointer; padding: 4px; opacity: 0; transition: opacity 0.2s;";
+                delBtn.innerHTML = '<i data-lucide="trash-2" size="12"></i>';
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteChatItem(item.id);
+                };
+                
+                div.appendChild(content);
+                div.appendChild(delBtn);
+                
+                div.onmouseenter = () => delBtn.style.opacity = '1';
+                div.onmouseleave = () => delBtn.style.opacity = '0';
+                
+                container.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        function showHistoryItem(item) {
+            switchMode('ai');
+            messagesContainer.innerHTML = '';
+            addUserMessage(item.prompt);
+            renderBotResponse(JSON.parse(item.response_json));
+        }
+
+        window.addEventListener('DOMContentLoaded', initializeAdmin);
+
         function logout() {
             localStorage.removeItem('admin_token');
-            window.location.href = '/static/admin_login.html';
+            window.location.href = '/login';
         }
 
         const messagesContainer = document.getElementById('messages');
@@ -121,6 +276,8 @@
         const sendBtn = document.getElementById('send-admin-btn');
         const explainToggle = document.getElementById('explain-toggle');
         const previewLabel = document.getElementById('preview-toggle-label');
+        const graphLabel = document.getElementById('graph-toggle-label');
+        const graphToggle = document.getElementById('graph-toggle');
         const btnText = document.getElementById('btn-text');
         const welcomeText = document.getElementById('welcome-text');
 
@@ -130,20 +287,79 @@
 
             if (mode === 'ai') {
                 document.getElementById('tab-ai').classList.add('active-module');
+                document.getElementById('messages').style.display = 'flex';
+                document.getElementById('user-management').style.display = 'none';
+                document.querySelector('.composer-wrapper').style.display = 'block';
                 adminInput.placeholder = "e.g. 'Update unit_price to 550 for product_id 10'";
                 previewLabel.style.display = 'flex';
+                graphLabel.style.display = 'flex';
                 btnText.innerText = "Execute Change";
-            } else {
+            } else if (mode === 'raw') {
                 document.getElementById('tab-raw').classList.add('active-module');
+                document.getElementById('messages').style.display = 'flex';
+                document.getElementById('user-management').style.display = 'none';
+                document.querySelector('.composer-wrapper').style.display = 'block';
                 adminInput.placeholder = "SELECT * FROM products; -- Enter RAW SQL here";
                 previewLabel.style.display = 'none';
+                graphLabel.style.display = 'none';
                 btnText.innerText = "Run SQL Query";
+            } else if (mode === 'users') {
+                document.getElementById('tab-users').classList.add('active-module');
+                document.getElementById('messages').style.display = 'none';
+                document.getElementById('user-management').style.display = 'flex';
+                document.querySelector('.composer-wrapper').style.display = 'none';
+                loadUsers();
             }
             lucide.createIcons();
         }
 
+        async function loadUsers() {
+            try {
+                const res = await fetch('/admin/users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                const tbody = document.getElementById('user-list-body');
+                tbody.innerHTML = '';
+
+                data.users.forEach(user => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="font-weight: 600; color: var(--text-base);">${user.username}</td>
+                        <td><span class="status-badge" style="position:static; padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; background: ${user.status === 'APPROVED' ? 'var(--success)' : user.status === 'PENDING' ? 'var(--primary)' : 'var(--error)'}">${user.status}</span></td>
+                        <td style="font-size: 0.8rem; color: var(--text-dim);">${new Date(user.created_at).toLocaleString()}</td>
+                        <td style="display: flex; gap: 8px; justify-content: flex-end;">
+                            ${user.status !== 'APPROVED' ? `<button onclick="updateUser('${user.username}', 'APPROVED')" class="btn-primary" style="padding: 6px 12px; font-size: 0.75rem; box-shadow: none;">Approve</button>` : ''}
+                            ${user.status !== 'REJECTED' ? `<button onclick="updateUser('${user.username}', 'REJECTED')" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; color: var(--error); border-color: rgba(239, 68, 68, 0.2);">Reject</button>` : ''}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                lucide.createIcons();
+            } catch (e) {
+                console.error("Failed to load users", e);
+            }
+        }
+
+        async function updateUser(username, status) {
+            try {
+                await fetch(`/admin/users/${username}/status`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status })
+                });
+                loadUsers();
+            } catch (e) {
+                alert("Failed to update user");
+            }
+        }
+
         function scrollToBottom() {
-            messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: 'smooth' });
+            const container = document.getElementById('sections-container');
+            container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
         }
 
         function addUserMessage(text) {
@@ -181,7 +397,7 @@
 
             const endpoint = currentMode === 'ai' ? '/admin/ask' : '/admin/execute';
             const body = currentMode === 'ai' ?
-                JSON.stringify({ question: inputVal, explain: explainToggle.checked }) :
+                JSON.stringify({ question: inputVal, explain: explainToggle.checked, generate_graph: graphToggle.checked }) :
                 JSON.stringify({ query: inputVal });
 
             try {
@@ -226,7 +442,38 @@
                     bubble.appendChild(ins);
                 }
 
+                if (data.graph_image) {
+                    const graphContainer = document.createElement('div');
+                    graphContainer.style.position = 'relative';
+                    const img = document.createElement('img');
+                    img.src = `data:image/png;base64,${data.graph_image}`;
+                    img.style.maxWidth = "100%";
+                    img.style.borderRadius = "12px";
+                    img.style.marginTop = "1rem";
+                    img.style.border = "1px solid var(--border-color)";
+                    graphContainer.appendChild(img);
+
+                    const dlBtn = document.createElement('button');
+                    dlBtn.className = "graph-download-btn";
+                    dlBtn.innerHTML = '<i data-lucide="download"></i> <span>Save Graph</span>';
+                    dlBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        downloadImage(img.src, `admin_export_${Date.now()}.png`);
+                    };
+                    graphContainer.appendChild(dlBtn);
+                    bubble.appendChild(graphContainer);
+                }
+
                 if (data.rows && data.rows.length > 0) {
+                    const exportToolbar = document.createElement('div');
+                    exportToolbar.className = 'export-toolbar';
+                    const csvBtn = document.createElement('button');
+                    csvBtn.className = 'btn-export';
+                    csvBtn.innerHTML = '<i data-lucide="download"></i> Download CSV';
+                    csvBtn.onclick = () => downloadCSV(data.columns, data.rows, `admin_export_${Date.now()}.csv`);
+                    exportToolbar.appendChild(csvBtn);
+                    bubble.appendChild(exportToolbar);
+
                     const tblWrap = document.createElement('div');
                     tblWrap.className = 'table-wrapper';
                     const table = document.createElement('table');
@@ -239,12 +486,97 @@
                     table.appendChild(tbody); tblWrap.appendChild(table); bubble.appendChild(tblWrap);
                 }
 
+                loadHistory(); 
                 lucide.createIcons();
             } catch (e) {
                 loadingRow.querySelector('.bubble').innerHTML = `<div style="color:var(--error)">Critical Communication Error</div>`;
             }
             scrollToBottom();
         });
+
+        function renderBotResponse(data) {
+            const row = document.createElement('div');
+            row.className = 'msg-row bot';
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            row.appendChild(bubble);
+            messagesContainer.appendChild(row);
+
+            if (data.error) {
+                bubble.innerHTML = `
+                    <div style="color:var(--error); font-weight:700; margin-bottom: 0.5rem;">Operation Failed</div>
+                    <div style="font-size:0.9rem; background: rgba(239, 68, 68, 0.05); padding: 0.75rem; border-radius: 8px; border-left: 3px solid var(--error);">
+                        ${data.error}
+                    </div>
+                `;
+            } else {
+                bubble.innerHTML = `
+                    <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem">
+                        ${data.row_count !== undefined ? `Modified/Retrieved: ${data.row_count} rows` : ''}
+                    </div>
+                `;
+
+                if (data.sql) {
+                    const sqlSec = document.createElement('div');
+                    sqlSec.className = 'sql-container';
+                    sqlSec.innerHTML = `<div class="sql-header">GENERATED RAW SQL</div><div class="sql-code">${data.sql}</div>`;
+                    bubble.appendChild(sqlSec);
+                }
+
+                if (data.explanation) {
+                    const ins = document.createElement('div');
+                    ins.className = 'insight-box';
+                    ins.innerHTML = `<strong>AI Insight:</strong><br>${data.explanation}`;
+                    bubble.appendChild(ins);
+                }
+
+                if (data.graph_image) {
+                    const graphContainer = document.createElement('div');
+                    graphContainer.style.position = 'relative';
+                    const img = document.createElement('img');
+                    img.src = `data:image/png;base64,${data.graph_image}`;
+                    img.style.maxWidth = "100%";
+                    img.style.borderRadius = "12px";
+                    img.style.marginTop = "1rem";
+                    img.style.border = "1px solid var(--border-color)";
+                    graphContainer.appendChild(img);
+
+                    const dlBtn = document.createElement('button');
+                    dlBtn.className = "graph-download-btn";
+                    dlBtn.innerHTML = '<i data-lucide="download"></i> <span>Save Graph</span>';
+                    dlBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        downloadImage(img.src, `admin_export_history_${Date.now()}.png`);
+                    };
+                    graphContainer.appendChild(dlBtn);
+                    bubble.appendChild(graphContainer);
+                }
+
+                if (data.rows && data.rows.length > 0) {
+                    const exportToolbar = document.createElement('div');
+                    exportToolbar.className = 'export-toolbar';
+                    const csvBtn = document.createElement('button');
+                    csvBtn.className = 'btn-export';
+                    csvBtn.innerHTML = '<i data-lucide="download"></i> Download CSV';
+                    csvBtn.onclick = () => downloadCSV(data.columns, data.rows, `admin_export_${Date.now()}.csv`);
+                    exportToolbar.appendChild(csvBtn);
+                    bubble.appendChild(exportToolbar);
+
+                    const tblWrap = document.createElement('div');
+                    tblWrap.className = 'table-wrapper';
+                    const table = document.createElement('table');
+                    const thead = document.createElement('thead');
+                    const hRow = document.createElement('tr');
+                    data.columns.forEach(col => { const th = document.createElement('th'); th.innerText = col; hRow.appendChild(th); });
+                    thead.appendChild(hRow); table.appendChild(thead);
+                    const tbody = document.createElement('tbody');
+                    data.rows.forEach(row => { const tr = document.createElement('tr'); row.forEach(cell => { const td = document.createElement('td'); td.innerText = cell === null ? 'NULL' : cell; tr.appendChild(td); }); tbody.appendChild(tr); });
+                    table.appendChild(tbody); tblWrap.appendChild(table); bubble.appendChild(tblWrap);
+                }
+            }
+            lucide.createIcons();
+            scrollToBottom();
+        }
 
         adminInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -257,6 +589,27 @@
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight > 300 ? 300 : this.scrollHeight) + 'px';
         });
+
+        function downloadCSV(columns, rows, filename) {
+            const csvContent = [
+                columns.join(','),
+                ...rows.map(r => r.join(','))
+            ].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        function downloadImage(dataUrl, filename) {
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 </body>
 

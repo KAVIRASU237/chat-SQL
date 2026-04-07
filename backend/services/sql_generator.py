@@ -10,7 +10,7 @@ class SQLGeneratorService:
             base_url=ollama_url
         )
         
-    def generate_sql(self, schema_context: str, user_query: str, is_admin: bool = False) -> str:
+    def generate_sql(self, schema_context: str, user_query: str, is_admin: bool = False, db_path: str = "") -> str:
         role_name = "Superuser Database Controller" if is_admin else "Database Read-Only Assistant"
         
         examples = ""
@@ -41,9 +41,9 @@ Your task is to convert NL requests into valid, optimized SQLite.
 - Use EXACT table and column names from the schema above.
 - Use 'LIKE %value%' for fuzzy string matching in WHERE clauses.
 - Output ONLY the raw SQL query or PRAGMA statement. No markdown, no comments, no intro.
-- If it's a { 'modification' if is_admin else 'query' } request, fulfill it using SQL.
-- If the user asks for 'structure', 'describe', or 'columns' of a table, use 'PRAGMA table_info(table_name)'.
-- ONLY return 'NOT_SQL' if the request is social chatter (e.g., 'hello', 'who are you').
+- If the user asks for all tables, use: SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';
+- If the user asks for 'structure', 'describe', or 'columns', use: PRAGMA table_info(table_name);
+- ONLY return 'NOT_SQL' if the request is social chatter.
 
 ### USER REQUEST:
 "{user_query}"

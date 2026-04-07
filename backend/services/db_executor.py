@@ -13,14 +13,12 @@ class DatabaseExecutor:
             cursor = conn.cursor()
             cursor.execute(query)
             
-            # Commit for non-SELECT and non-PRAGMA statements
             upper_query = query.upper()
             if any(op in upper_query for op in ["INSERT", "UPDATE", "DELETE", "CREATE", "DROP", "ALTER"]):
                 conn.commit()
 
             rows = cursor.fetchall() if cursor.description or "PRAGMA" in upper_query else []
             
-            # Handle standard columns vs PRAGMA columns
             if cursor.description:
                 columns = [desc[0] for desc in cursor.description]
             elif "PRAGMA TABLE_INFO" in upper_query:
@@ -28,7 +26,6 @@ class DatabaseExecutor:
             else:
                 columns = []
             
-            # For DML statements, fetchall() is empty, so we use rowcount
             row_count = cursor.rowcount if not cursor.description and "PRAGMA" not in upper_query else len(rows)
             
             return {
@@ -38,13 +35,8 @@ class DatabaseExecutor:
                 "row_count": row_count if row_count != -1 else len(rows)
             }
         except Exception as e:
-            if conn:
-                conn.rollback()
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            if conn: conn.rollback()
+            return {"success": False, "error": str(e)}
         finally:
-            if conn:
-                conn.close()
+            if conn: conn.close()
 

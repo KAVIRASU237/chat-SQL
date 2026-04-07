@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +14,7 @@ from backend.utils.sql_validator import SQLValidator
 from backend.utils.schema_extractor import SchemaExtractor
 from backend.services.dashboard_service import DashboardService
 from backend.routers import admin
+from backend.routers.admin import get_current_user
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -34,6 +35,7 @@ sql_gen = SQLGeneratorService(settings.OLLAMA_URL)
 db_executor = DatabaseExecutor(settings.DATABASE_PATH)
 graph_gen = GraphGeneratorService()
 dashboard_service = DashboardService(settings.OLLAMA_URL)
+admin_service = admin.admin_service # Reuse the instance from router
 
 class QueryRequest(BaseModel):
     question: str
@@ -70,7 +72,7 @@ def connect_db(req: DBConnectionRequest):
     return {"message": f"Connected to {req.db_path}", "tables_indexed": num_docs}
 
 @app.post("/ask")
-def ask_question(req: QueryRequest):
+def ask_question(req: QueryRequest, current_user: dict = Depends(get_current_user)):
     print(f"--- New Question: {req.question} ---")
     try:
         # 1. Retrieve Schema context
@@ -78,7 +80,7 @@ def ask_question(req: QueryRequest):
         print(f"Retrieved Schema Context: {schema_context[:200]}...")
         
         # 2. Generate SQL
-        sql_query = sql_gen.generate_sql(schema_context, req.question)
+        sql_query = sql_gen.generate_sql(schema_context, req.question, db_path=settings.DATABASE_PATH)
         print(f"Generated SQL: {sql_query}")
         
         if sql_query == "NOT_SQL":
@@ -136,7 +138,7 @@ def ask_question(req: QueryRequest):
             except Exception as e:
                 print(f"Graph generation failed: {e}")
 
-        return {
+        response_data = {
             "sql": sql_query,
             "columns": result["columns"],
             "rows": result["rows"],
@@ -146,12 +148,18 @@ def ask_question(req: QueryRequest):
             "schema_used": schema_context
         }
 
+        # Save to history
+        import json
+        admin_service.save_chat(current_user["username"], req.question, json.dumps(response_data))
+
+        return response_data
+
     except Exception as e:
         print(f"UNEXPECTED ERROR: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/generate-dashboard")
-def generate_dashboard(req: QueryRequest):
+def generate_dashboard(req: QueryRequest, current_user: dict = Depends(get_current_user)):
     """
     Generates a multi-component dashboard plan based on NL request.
     """
@@ -203,6 +211,21 @@ def get_full_schema():
     extractor = SchemaExtractor(settings.DATABASE_PATH)
     return {"schema": extractor.get_schema_docs()}
 
+@app.get("/history")
+def get_history(current_user: dict = Depends(get_current_user)):
+    history = admin_service.get_chat_history(current_user["username"])
+    return {"history": history}
+
+@app.post("/history/clear")
+def clear_history(current_user: dict = Depends(get_current_user)):
+    admin_service.clear_chat_history(current_user["username"])
+    return {"message": "History cleared"}
+
+@app.delete("/history/{chat_id}")
+def delete_chat(chat_id: int, current_user: dict = Depends(get_current_user)):
+    admin_service.delete_chat_item(current_user["username"], chat_id)
+    return {"message": "Chat deleted"}
+
 # Serve Frontend
 # Make sure the frontend folder exists and is visible to the backend
 frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend"))
@@ -211,6 +234,18 @@ app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 @app.get("/")
 def read_index():
     return FileResponse(os.path.join(frontend_path, "index.html"))
+
+@app.get("/login")
+def read_login():
+    return FileResponse(os.path.join(frontend_path, "user_login.html"))
+
+@app.get("/register")
+def read_register():
+    return FileResponse(os.path.join(frontend_path, "user_register.html"))
+
+@app.get("/adminlogin")
+def read_admin_login():
+    return FileResponse(os.path.join(frontend_path, "admin_login.html"))
 
 if __name__ == "__main__":
     import uvicorn

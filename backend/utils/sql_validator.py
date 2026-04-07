@@ -10,9 +10,9 @@ class SQLValidator:
         # Clean leading/trailing junk that might bypass the generator's cleaning
         query_clean = query.strip('`"\' ').strip().lower()
 
-        # Basic check: Must start with SELECT
-        if not query_clean.startswith("select"):
-            return False, f"Only SELECT queries are allowed for security reasons. (Received: {query[:20]}...)"
+        # Basic check: Must start with SELECT or PRAGMA
+        if not (query_clean.startswith("select") or query_clean.startswith("pragma")):
+            return False, f"Only SELECT or PRAGMA queries are allowed for security reasons. (Received: {query[:20]}...)"
 
         # Block dangerous keywords
         forbidden_keywords = [
