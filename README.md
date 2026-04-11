@@ -100,38 +100,19 @@ Export any query result as a clean CSV file in one click.
 ## 🏗 Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         User / Admin                            │
-└─────────────────────────────┬───────────────────────────────────┘
-                              │  Natural Language Query
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     FastAPI Backend                             │
-│                                                                 │
-│   ┌──────────────┐    ┌────────────────┐    ┌───────────────┐  │
-│   │  JWT Auth +  │    │  FAISS Vector  │    │  SQL Validator │  │
-│   │  RBAC Guard  │───▶│  Schema Index  │───▶│  (Read-Only   │  │
-│   │              │    │  (RAG Layer)   │    │   Enforcer)   │  │
-│   └──────────────┘    └───────┬────────┘    └───────┬───────┘  │
-│                               │                     │          │
-│                               ▼                     ▼          │
-│                    ┌─────────────────────────────────────┐     │
-│                    │       Ollama  (Local LLM)            │     │
-│                    │       Mistral-7B / Llama3            │     │
-│                    └──────────────┬──────────────────────┘     │
-│                                   │  Generated SQL             │
-│                    ┌──────────────▼──────────────────────┐     │
-│                    │           SQLite DB                  │     │
-│                    └──────────────┬──────────────────────┘     │
-│                                   │  Result Set                │
-│           ┌───────────────────────┼───────────────────┐        │
-│           ▼                       ▼                   ▼        │
-│   ┌──────────────┐    ┌─────────────────┐   ┌──────────────┐  │
-│   │  Matplotlib  │    │  AI Insight     │   │  CSV Export  │  │
-│   │  Chart Gen   │    │  Generation     │   │              │  │
-│   └──────────────┘    └─────────────────┘   └──────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-```
+graph TD
+    A[User Query] --> B{Role Check}
+    B -- Regular User --> C[SQL Validator: Read-Only]
+    B -- Admin --> D[Full CRUD Access]
+    C --> E[RAG: Schema Retrieval]
+    D --> E
+    E --> F[Local LLM: SQL Gen]
+    F --> G[Database Execution]
+    G --> H[Data Visualization]
+    G --> I[AI Insight Generation]
+    H --> J[Final Response to UI]
+    I --> J
+
 
 ---
 
