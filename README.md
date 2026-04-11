@@ -1,166 +1,277 @@
-# <img src="chatsql_banner_1775914523320.png" width="100%" alt="ChatSQL Banner">
+<div align="center">
 
-# 🤖 ChatSQL: Professional NL-to-SQL Intelligence
+<br/>
 
-[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-blue?style=for-the-badge)](https://ollama.com/)
-[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+```
+ ██████╗██╗  ██╗ █████╗ ████████╗███████╗ ██████╗ ██╗
+██╔════╝██║  ██║██╔══██╗╚══██╔══╝██╔════╝██╔═══██╗██║
+██║     ███████║███████║   ██║   ███████╗██║   ██║██║
+██║     ██╔══██║██╔══██║   ██║   ╚════██║██║▄▄ ██║██║
+╚██████╗██║  ██║██║  ██║   ██║   ███████║╚██████╔╝███████╗
+ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
+```
 
-**ChatSQL** is an elite, production-ready Text-to-SQL platform that enables users to interact with structured databases using natural language. Built with a **Privacy-First** philosophy, it operates 100% offline using local LLMs (Mistral/Llama) and an advanced RAG (Retrieval-Augmented Generation) pipeline.
+### Talk to your database. In plain English.
 
----
+<br/>
 
-## 🌟 Key Features
+[![Python](https://img.shields.io/badge/Python_3.9+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Ollama](https://img.shields.io/badge/Ollama-Local_LLM-black?style=flat-square)](https://ollama.com/)
+[![FAISS](https://img.shields.io/badge/FAISS-RAG_Pipeline-blue?style=flat-square)](https://github.com/facebookresearch/faiss)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
-### 🧠 Intelligent Core
-- **Natural Language Querying**: Talk to your database. Ask questions like *"Who are my top 10 customers by revenue?"* or *"Summarize last month's sales."*
-- **RAG-Powered Context**: Uses FAISS vector indexing to provide the LLM with relevant schema fragments, ensuring high accuracy even with complex table structures.
-- **Smart Auto-Indexing**: Automatically detects schema changes (CREATE/ALTER/DROP) and updates the vector index in real-time.
+<br/>
 
-### 📊 Visual Analytics & Insights
-- **Automatic Visualization**: Dynamically generates Bar, Line, and Pie charts based on query results using Matplotlib.
-- **Automated Dashboards**: Ask for a "Dashboard of sales performance," and the system generates a multi-component layout with metrics and graphs.
-- **AI Insights**: Provides non-technical, human-readable summaries for every query result, making data accessible to everyone.
-- **CSV Export**: Professional data export capabilities for all query results.
+> **ChatSQL** is a privacy-first, 100% offline natural language to SQL platform.  
+> Ask questions in plain English — get SQL, charts, and AI-generated insights instantly.  
+> No cloud. No API keys. No data leaves your machine.
 
-### 🛡️ Secure Admin Ecosystem
-- **Role-Based Access Control (RBAC)**: Secure separation between regular users (Read-Only) and administrators (Full CRUD).
-- **User Management**: Admin approval workflow for new registrations.
-- **Action Auditing**: Every administrative action and NLP-driven modification is logged for security compliance.
-- **Raw SQL Terminal**: Direct execution for power users with a built-in safety-first approach.
+<br/>
 
----
+[**Get Started**](#-quick-start) · [**Features**](#-features) · [**Architecture**](#-architecture) · [**Contributing**](#-contributing)
 
-## 🛠️ Technology Stack
+<br/>
 
-| Component | Technology | Role |
-| :--- | :--- | :--- |
-| **Backend** | FastAPI (Python) | High-performance API orchestration |
-| **Intelligence** | LangChain + Ollama | Local LLM inference (Mistral-7B) |
-| **Knowledge Base** | FAISS | Schema embedding and retrieval |
-| **Security** | JWT + Argon2 | Secure session & password management |
-| **Visualization** | Matplotlib / Pandas | On-the-fly chart generation |
-| **Frontend** | Vanilla JS / CSS | Premium, responsive Glassmorphic UI |
+</div>
 
 ---
 
-## 📐 How It Works
+## Why ChatSQL?
 
-```mermaid
-graph TD
-    A[User Query] --> B{Role Check}
-    B -- Regular User --> C[SQL Validator: Read-Only]
-    B -- Admin --> D[Full CRUD Access]
-    C --> E[RAG: Schema Retrieval]
-    D --> E
-    E --> F[Local LLM: SQL Gen]
-    F --> G[Database Execution]
-    G --> H[Data Visualization]
-    G --> I[AI Insight Generation]
-    H --> J[Final Response to UI]
-    I --> J
+Most NL-to-SQL tools send your database schema — and sometimes your data — to external APIs. That's a hard no for enterprise environments.
+
+ChatSQL runs **entirely on your hardware** using Ollama (Mistral/Llama). Your schema stays local. Your queries stay local. Your data stays local.
+
+```
+"Show me the top 5 customers by total order value this quarter"
+                            ↓
+        SELECT c.name, SUM(o.amount) AS total
+        FROM customers c JOIN orders o ON c.id = o.customer_id
+        WHERE o.date >= date('now', 'start of quarter')
+        GROUP BY c.id ORDER BY total DESC LIMIT 5;
+                            ↓
+              [Bar chart + AI insight generated]
+```
+
+---
+## 📸 Screenshots
+
+<div align="center">
+
+| Chat Interface | Query Results & Charts |
+|:-:|:-:|
+| ![Chat Interface](![alt text](image-1.png)) | ![Charts](![alt text](image.png)) |
+
+| Admin Dashboard | AI Insights |
+|:-:|:-:|
+| ![Admin](![alt text](image-2.png)) | ![Insights](![alt text](image-3.png)) |
+
+</div>
+
+## ✨ Features
+
+### 🧠 RAG-Powered SQL Generation
+FAISS vector indexing retrieves only the *relevant* schema fragments before each LLM call — not the entire schema. This dramatically improves accuracy on large, complex databases and makes every query faster.
+
+### 📊 Automatic Visualizations
+Query results are automatically rendered as Bar, Line, or Pie charts using Matplotlib. No configuration required — the system infers the best chart type from the result structure.
+
+### 🤖 AI Insights
+Every result comes with a plain-English summary generated by the LLM. Non-technical stakeholders can understand the data without reading a single row.
+
+### 🔐 Role-Based Access Control
+| Role | Permissions |
+|------|-------------|
+| **User** | `SELECT` queries only — read-only access |
+| **Admin** | Full `CRUD` operations via SQL Terminal |
+
+New user registrations go through an admin approval workflow. Every sensitive action is logged to an immutable audit trail.
+
+### ⚡ Smart Auto-Indexing
+The vector index is updated in real-time when the schema changes (`CREATE`, `ALTER`, `DROP`). No manual re-indexing step.
+
+### 📁 CSV Export
+Export any query result as a clean CSV file in one click.
+
+---
+
+## 🏗 Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         User / Admin                            │
+└─────────────────────────────┬───────────────────────────────────┘
+                              │  Natural Language Query
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     FastAPI Backend                             │
+│                                                                 │
+│   ┌──────────────┐    ┌────────────────┐    ┌───────────────┐  │
+│   │  JWT Auth +  │    │  FAISS Vector  │    │  SQL Validator │  │
+│   │  RBAC Guard  │───▶│  Schema Index  │───▶│  (Read-Only   │  │
+│   │              │    │  (RAG Layer)   │    │   Enforcer)   │  │
+│   └──────────────┘    └───────┬────────┘    └───────┬───────┘  │
+│                               │                     │          │
+│                               ▼                     ▼          │
+│                    ┌─────────────────────────────────────┐     │
+│                    │       Ollama  (Local LLM)            │     │
+│                    │       Mistral-7B / Llama3            │     │
+│                    └──────────────┬──────────────────────┘     │
+│                                   │  Generated SQL             │
+│                    ┌──────────────▼──────────────────────┐     │
+│                    │           SQLite DB                  │     │
+│                    └──────────────┬──────────────────────┘     │
+│                                   │  Result Set                │
+│           ┌───────────────────────┼───────────────────┐        │
+│           ▼                       ▼                   ▼        │
+│   ┌──────────────┐    ┌─────────────────┐   ┌──────────────┐  │
+│   │  Matplotlib  │    │  AI Insight     │   │  CSV Export  │  │
+│   │  Chart Gen   │    │  Generation     │   │              │  │
+│   └──────────────┘    └─────────────────┘   └──────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🚀 Quick Start Guide
+## 🛠 Tech Stack
+
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| **API** | FastAPI | High-performance async backend |
+| **LLM** | Ollama + Mistral-7B | 100% local inference |
+| **RAG** | LangChain + FAISS | Schema retrieval & context injection |
+| **Auth** | JWT + Argon2 | Secure sessions & password hashing |
+| **Database** | SQLite | Lightweight, zero-config storage |
+| **Charts** | Matplotlib + Pandas | Dynamic chart generation |
+| **Frontend** | Vanilla JS | Fast, dependency-free glassmorphic UI |
+
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
-1.  **Ollama**: Install from [ollama.com](https://ollama.com/)
-2.  **Model**: Pull the default model:
-    ```bash
-    ollama pull mistral
-    ```
+
+- Python 3.9+
+- [Ollama](https://ollama.com/) installed and running
+
+```bash
+# Pull the default model (one-time setup)
+ollama pull mistral
+```
 
 ### Installation
-1.  **Clone & Setup**:
-    ```bash
-    git clone https://github.com/KAVIRASU237/chat-SQL.git
-    cd chat-SQL
-    python -m venv .venv
-    # Windows
-    .venv\Scripts\activate
-    # Linux/Mac
-    source .venv/bin/activate
-    pip install -r requirements.txt
-    ```
 
-2.  **Initialize Database**:
-    ```bash
-    python -m backend.utils.setup_sample_db
-    ```
+```bash
+# 1. Clone the repository
+git clone https://github.com/KAVIRASU237/chat-SQL.git
+cd chat-SQL
 
-3.  **Launch Platform**:
-    ```bash
-    uvicorn backend.main:app --reload
-    ```
+# 2. Create and activate a virtual environment
+python -m venv .venv
 
-4.  ### Access & Default Credentials
-- **User Portal**: [http://localhost:8000](http://localhost:8000)
-- **Admin Dashboard**: [http://localhost:8000/adminlogin](http://localhost:8000/adminlogin)
-- **Default Admin**: `admin` / `admin123`
-- **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+# On Windows
+.venv\Scripts\activate
 
----
+# On Linux / macOS
+source .venv/bin/activate
 
-## 📽️ Features Walkthrough
+# 3. Install dependencies
+pip install -r requirements.txt
 
-````carousel
-### 💬 Chat Interface
-![Natural Language Interface](chatsql_banner_1775914523320.png)
-Query your data naturally and get instant SQL + Insights.
-<!-- slide -->
-### 📊 Visual Analytics
-Automatically generate charts and graphs from your query results.
-<!-- slide -->
-### 🔒 Admin Control
-Full CRUD capabilities and action logging in a secure portal.
-````
+# 4. Initialize the sample database
+python -m backend.utils.setup_sample_db
 
----
+# 5. Launch
+uvicorn backend.main:app --reload
+```
 
-## 🔐 Security & Privacy
+### Access the App
 
-- **100% Local**: No data ever leaves your machine. Perfect for sensitive enterprise data.
-- **Audit Logs**: Transparent tracking of who did what and when.
-- **Safe Execution**: Multi-layer validation prevents destructive commands from unauthorized users.
+| Interface | URL | Default Credentials |
+|-----------|-----|---------------------|
+| User Portal | http://localhost:8000 | *(register a new account)* |
+| Admin Dashboard | http://localhost:8000/adminlogin | `admin` / `admin123` |
+| API Docs (Swagger) | http://localhost:8000/docs | — |
+
+> ⚠️ **Change the default admin password immediately after first login.**
 
 ---
 
 ## 📂 Project Structure
 
-```text
+```
+chat-SQL/
+│
 ├── backend/
-│   ├── core/           # Configuration & Configs
-│   ├── routers/        # API Endpoints (Admin/General)
-│   ├── services/       # RAG, SQL Gen, Graph, Auth Services
-│   └── utils/          # SQL Validators, Schema Extractors
+│   ├── core/               # App config, settings
+│   ├── routers/            # API route handlers (admin, general)
+│   ├── services/           # Business logic
+│   │   ├── rag_service.py  # FAISS indexing & retrieval
+│   │   ├── sql_service.py  # LLM prompting & SQL generation
+│   │   ├── graph_service.py# Chart generation
+│   │   └── auth_service.py # JWT & session management
+│   └── utils/              # SQL validators, schema extractors
+│
 ├── frontend/
-│   ├── static/         # HTML, CSS, JS Assets
-│   └── index.html      # Main Entrance
+│   ├── static/             # CSS, JavaScript assets
+│   └── index.html          # Main entry point
+│
 ├── data/
-│   ├── sample.db       # Application Data
-│   └── admin.db        # Admin Audit Logs & Credentials
-└── requirements.txt    # Project Dependencies
+│   ├── sample.db           # Application database
+│   └── admin.db            # Admin credentials & audit logs
+│
+└── requirements.txt
 ```
 
 ---
 
-## 🖼️ Application Gallery
+## 🔒 Security
 
-| Dashboard Interface | Data Insights |
-| :---: | :---: |
-| ![Dashboard](https://raw.githubusercontent.com/KAVIRASU237/chat-SQL/main/screenshots/dashboard.jpg) | ![Insights](https://raw.githubusercontent.com/KAVIRASU237/chat-SQL/main/screenshots/insights.jpg) |
-
----
-
-## 👥 Contributors & Support
-
-Developed with ❤️ by **Kavirasu**.
-
-- **Repo**: [KAVIRASU237/chat-SQL](https://github.com/KAVIRASU237/chat-SQL)
-- **License**: MIT License
+- **Air-gapped by design** — no external API calls, ever
+- **Audit logging** — every admin action and NLP-triggered write is recorded with timestamp and user context
+- **Read-only enforcement** — regular user queries are validated before execution; `INSERT`, `UPDATE`, `DELETE`, `DROP` are blocked at the validator layer
+- **Password hashing** — Argon2id (memory-hard, phishing-resistant)
+- **JWT sessions** — short-lived tokens with refresh flow
 
 ---
 
+## 🤝 Contributing
+
+Contributions are welcome and appreciated. Here's how to get involved:
+
+1. **Fork** the repository
+2. **Create a branch**: `git checkout -b feature/your-feature-name`
+3. **Commit your changes**: `git commit -m 'Add: short description'`
+4. **Push**: `git push origin feature/your-feature-name`
+5. **Open a Pull Request**
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting. For major changes, open an issue first to discuss what you'd like to change.
+
+---
+
+## 🗺 Roadmap
+
+- [ ] PostgreSQL and MySQL connector support
+- [ ] Multi-database session switching
+- [ ] Llama 3 / Gemma model profiles
+- [ ] Query history with re-run support
+- [ ] Scheduled report generation
+- [ ] Docker Compose deployment
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+<div align="center">
+
+Built with ❤️ by [Kavirasu](https://github.com/KAVIRASU237)
+
+*If ChatSQL saved you time, consider giving it a ⭐ — it helps others find the project.*
+
+</div>
