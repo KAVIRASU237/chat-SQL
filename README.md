@@ -148,7 +148,7 @@ graph TD
     style DB fill:#0984e3,color:#fff
     style RAG fill:#fdcb6e,color:#fff
     style Auth fill:#d63031,color:#fff
->>>>>>> e995d10 (readme.md updated and images added)
+
 ```
 
 ---
