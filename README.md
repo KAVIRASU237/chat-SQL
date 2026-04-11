@@ -7,8 +7,8 @@
 ██╔════╝██║  ██║██╔══██╗╚══██╔══╝██╔════╝██╔═══██╗██║
 ██║     ███████║███████║   ██║   ███████╗██║   ██║██║
 ██║     ██╔══██║██╔══██║   ██║   ╚════██║██║▄▄ ██║██║
-╚██████╗██║  ██║██║  ██║   ██║   ███████║╚██████╔╝███████╗
- ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
+ ╚██████╗██║  ██║██║  ██║   ██║   ███████║╚██████╔╝███████╗
+  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
 ```
 
 ### Talk to your database. In plain English.
@@ -251,11 +251,11 @@ chat-SQL/
 
 | Chat Interface | Query Results & Charts |
 |:-:|:-:|
-| ![Chat Interface](screenshots/chat.png) | ![Charts](screenshots/charts.png) |
+| ![Chat Interface](image-1.png) | ![Charts](image.png) |
 
 | Admin Dashboard | AI Insights |
 |:-:|:-:|
-| ![Admin Dashboard](screenshots/admin.png) | ![AI Insights](screenshots/insights.png) |
+| ![Admin Dashboard](image-2.png) | ![AI Insights](image-3.png) |
 
 </div>
 
