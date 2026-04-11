@@ -96,10 +96,6 @@ The vector index is updated in real-time when the schema changes (`CREATE`, `ALT
 Export any query result as a clean CSV file in one click.
 
 ---
-
-## 🏗 Architecture
-
-```
 graph TD
     A[User Query] --> B{Role Check}
     B -- Regular User --> C[SQL Validator: Read-Only]
@@ -113,6 +109,9 @@ graph TD
     H --> J[Final Response to UI]
     I --> J
 
+## 🏗 Architecture
+
+```
 
 ---
 
