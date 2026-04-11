@@ -3,12 +3,12 @@
 <br/>
 
 ```
- ██████╗██╗  ██╗ █████╗ ████████╗███████╗ ██████╗ ██╗
-██╔════╝██║  ██║██╔══██╗╚══██╔══╝██╔════╝██╔═══██╗██║
-██║     ███████║███████║   ██║   ███████╗██║   ██║██║
-██║     ██╔══██║██╔══██║   ██║   ╚════██║██║▄▄ ██║██║
- ╚██████╗██║  ██║██║  ██║   ██║   ███████║╚██████╔╝███████╗
-  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
+    ██████╗██╗  ██╗ █████╗ ████████╗███████╗ ██████╗ ██╗
+    ██╔════╝██║  ██║██╔══██╗╚══██╔══╝██╔════╝██╔═══██╗██║
+    ██║     ███████║███████║   ██║   ███████╗██║   ██║██║
+    ██║     ██╔══██║██╔══██║   ██║   ╚════██║██║▄▄ ██║██║
+         ╚██████╗██║  ██║██║  ██║   ██║   ███████║╚██████╔╝███████╗
+         ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
 ```
 
 ### Talk to your database. In plain English.
@@ -84,18 +84,7 @@ The vector index is updated in real-time when the schema changes (`CREATE`, `ALT
 Export any query result as a clean CSV file in one click.
 
 ---
-graph TD
-    A[User Query] --> B{Role Check}
-    B -- Regular User --> C[SQL Validator: Read-Only]
-    B -- Admin --> D[Full CRUD Access]
-    C --> E[RAG: Schema Retrieval]
-    D --> E
-    E --> F[Local LLM: SQL Gen]
-    F --> G[Database Execution]
-    G --> H[Data Visualization]
-    G --> I[AI Insight Generation]
-    H --> J[Final Response to UI]
-    I --> J
+
 
 ## 🏗 Architecture
 
@@ -259,7 +248,7 @@ chat-SQL/
 
 </div>
 
-> 📁 Add your screenshots to a `screenshots/` folder at the repo root, named `chat.png`, `charts.png`, `admin.png`, and `insights.png`.
+
 
 ---
 
@@ -283,7 +272,7 @@ Contributions are welcome and appreciated. Here's how to get involved:
 4. **Push** — `git push origin feature/your-feature-name`
 5. **Open a Pull Request**
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting. For major changes, open an issue first to discuss what you'd like to change.
+
 
 ---
 
