@@ -99,8 +99,7 @@ graph TD
 
 ## 🏗 Architecture
 
-<<<<<<< HEAD
-=======
+
 ```mermaid
 graph TD
     %% User Layer
